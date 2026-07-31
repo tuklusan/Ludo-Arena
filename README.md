@@ -1,5 +1,9 @@
 # SANYALnet Labs Ludo AI Arena
 
+> Cross-platform desktop Ludo with four autonomous AI players (NVIDIA NIM + deterministic local
+> fallback). C# / .NET 10 / Avalonia. Built by ChatDev 2.0; verified on Linux, Windows 10/11 and
+> macOS. &mdash; <https://github.com/tuklusan/Ludo-Arena>
+
 A polished, cross-platform desktop **Ludo** game in which **four autonomous AI players** play a
 full match automatically — animated die, tokens gliding cell by cell, captures, blockades, bonus
 rolls and a winner screen. Each player consults a language model (via the OpenAI-compatible
