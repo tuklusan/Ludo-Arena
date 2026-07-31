@@ -1,0 +1,50 @@
+## .NET build output
+bin/
+obj/
+*.user
+*.suo
+*.sln.docstates
+*.nupkg
+TestResults/
+*.DotSettings.user
+artifacts/
+publish/
+
+## Node
+node_modules/
+.npm/
+
+## JetBrains / Visual Studio / VS Code
+.idea/
+.vs/
+*.sln.iml
+*.code-workspace
+
+## macOS / editor cruft
+.DS_Store
+*.swp
+*.orig
+*~
+
+## Build / render artifacts
+render-artifacts/
+test-screenshots/
+*.png.env
+
+## Secrets and local environment — NEVER COMMIT
+## The app reads NVIDIA_API_KEY and every NVIDIA_* setting from the environment only.
+.env
+.env.*
+*.env
+*env.list
+env.list
+*secrets*
+secrets.*
+*.pem
+*.key
+*.pfx
+*.token
+apikey*
+api_key*
+NVIDIA_API_KEY*
+nvidia*.key

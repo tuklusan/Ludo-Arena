@@ -1,0 +1,191 @@
+﻿<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:local="using:LudoNimArena.App"
+        x:Class="LudoNimArena.App.MainWindow"
+        Title="SANYALnet Labs Ludo AI Arena"
+        Width="1100" Height="850"
+        MinWidth="900" MinHeight="700"
+        Background="{StaticResource SystemControlBackgroundBaseLowBrush}">
+
+    <Design.DataContext>
+        <local:MainViewModel/>
+    </Design.DataContext>
+
+    <Grid RowDefinitions="Auto,*" ColumnDefinitions="*">
+        <!-- Header -->
+        <Border Grid.Row="0" Background="{StaticResource SystemAccentColorDark1Brush}" Padding="12,8" CornerRadius="0">
+            <Grid ColumnDefinitions="Auto,Auto,*,Auto">
+                <TextBlock Grid.Column="0" Text="🎲 SANYALnet Labs Ludo AI Arena" FontSize="20" FontWeight="Bold" Foreground="White" VerticalAlignment="Center"/>
+                <TextBlock Grid.Column="1" Text="Four AI Players" FontSize="14" Foreground="White" Opacity="0.8" VerticalAlignment="Center" Margin="16,0,0,0"/>
+                <TextBlock Grid.Column="2" Text="{Binding PhaseMessage}" FontSize="12" Foreground="White" Opacity="0.7" VerticalAlignment="Center" Margin="12,0,0,0"/>
+                <Button Grid.Column="3" Content="QUIT" Command="{Binding QuitCommand}" 
+                        IsVisible="{Binding IsGameRunning}"
+                        Background="#cc3333" Foreground="White" FontWeight="Bold"
+                        Padding="16,6" VerticalAlignment="Center"/>
+            </Grid>
+        </Border>
+
+        <!-- Main Content. Fixed side-column widths keep the board a constant size so it never
+             reflows/jitters when the die, status, or event log change. -->
+        <Grid Grid.Row="1" ColumnDefinitions="200,*,210" Margin="8">
+
+            <!-- Setup Screen -->
+            <Border Grid.Column="0" Grid.ColumnSpan="3" IsVisible="{Binding IsSetupVisible}"
+                    Background="{StaticResource SystemControlBackgroundChromeMediumLowBrush}"
+                    Padding="32" CornerRadius="8" Margin="40">
+                <StackPanel Spacing="16" MaxWidth="500" HorizontalAlignment="Center">
+                    <TextBlock Text="SANYALnet Labs Ludo AI Arena" FontSize="30" FontWeight="Bold" HorizontalAlignment="Center" TextWrapping="Wrap" TextAlignment="Center"/>
+                    <TextBlock Text="Four AI Players - Automatic Game" FontSize="16" HorizontalAlignment="Center" Foreground="Gray"/>
+
+                    <TextBlock Text="Player Names" FontSize="18" FontWeight="Bold" Margin="0,16,0,0"/>
+                    <Grid ColumnDefinitions="Auto,*,Auto" RowDefinitions="Auto,Auto,Auto,Auto">
+                        <Ellipse Grid.Row="0" Grid.Column="0" Width="20" Height="20" Fill="Red" Margin="0,0,8,0"/>
+                        <TextBox Grid.Row="0" Grid.Column="1" Text="{Binding RedName}" Watermark="HAL 9000"/>
+                        <TextBlock Grid.Row="0" Grid.Column="2" Text="Assertive" Foreground="Gray" VerticalAlignment="Center"/>
+
+                        <Ellipse Grid.Row="1" Grid.Column="0" Width="20" Height="20" Fill="Green" Margin="0,0,8,0"/>
+                        <TextBox Grid.Row="1" Grid.Column="1" Text="{Binding GreenName}" Watermark="Marvin"/>
+                        <TextBlock Grid.Row="1" Grid.Column="2" Text="Safety-conscious" Foreground="Gray" VerticalAlignment="Center"/>
+
+                        <Ellipse Grid.Row="2" Grid.Column="0" Width="20" Height="20" Fill="#dcc81e" Margin="0,0,8,0"/>
+                        <TextBox Grid.Row="2" Grid.Column="1" Text="{Binding YellowName}" Watermark="Mal"/>
+                        <TextBlock Grid.Row="2" Grid.Column="2" Text="Progress-focused" Foreground="Gray" VerticalAlignment="Center"/>
+
+                        <Ellipse Grid.Row="3" Grid.Column="0" Width="20" Height="20" Fill="Blue" Margin="0,0,8,0"/>
+                        <TextBox Grid.Row="3" Grid.Column="1" Text="{Binding BlueName}" Watermark="Deckard"/>
+                        <TextBlock Grid.Row="3" Grid.Column="2" Text="Balanced" Foreground="Gray" VerticalAlignment="Center"/>
+                    </Grid>
+
+                    <StackPanel Spacing="4">
+                        <TextBlock Text="Rules: Indian Digital Classic" FontWeight="Bold"/>
+                        <TextBlock Text="NVIDIA NIM:" FontWeight="Bold"/>
+                        <TextBlock Text="{Binding NimStatus}" Foreground="Gray"/>
+                    </StackPanel>
+
+                    <Button Content="START GAME" Command="{Binding StartGameCommand}"
+                            FontSize="18" FontWeight="Bold" Padding="24,12"
+                            Background="{StaticResource SystemAccentColorBrush}" Foreground="White"
+                            HorizontalAlignment="Center" Margin="0,16,0,0"/>
+                </StackPanel>
+            </Border>
+
+            <!-- Left Panel: Status -->
+            <Border Grid.Column="0" IsVisible="{Binding IsGameRunning}" Padding="8" MinWidth="180"
+                    Background="{StaticResource SystemControlBackgroundChromeLowBrush}" CornerRadius="4">
+                <StackPanel Spacing="8">
+                    <TextBlock Text="Players" FontWeight="Bold" FontSize="16"/>
+                    
+                    <!-- Red -->
+                    <Border Padding="6" CornerRadius="4" 
+                            Background="{Binding IsRedActive, Converter={x:Static local:MainWindow.BoolToHighlightConverter}}">
+                        <StackPanel Spacing="2">
+                            <StackPanel Orientation="Horizontal" Spacing="6">
+                                <Ellipse Width="14" Height="14" Fill="Red"/>
+                                <TextBlock Text="{Binding RedName}" FontWeight="Bold"/>
+                            </StackPanel>
+                            <TextBlock Text="{Binding RedStatus}" FontSize="11" Foreground="Gray"/>
+                        </StackPanel>
+                    </Border>
+
+                    <!-- Green -->
+                    <Border Padding="6" CornerRadius="4"
+                            Background="{Binding IsGreenActive, Converter={x:Static local:MainWindow.BoolToHighlightConverter}}">
+                        <StackPanel Spacing="2">
+                            <StackPanel Orientation="Horizontal" Spacing="6">
+                                <Ellipse Width="14" Height="14" Fill="Green"/>
+                                <TextBlock Text="{Binding GreenName}" FontWeight="Bold"/>
+                            </StackPanel>
+                            <TextBlock Text="{Binding GreenStatus}" FontSize="11" Foreground="Gray"/>
+                        </StackPanel>
+                    </Border>
+
+                    <!-- Yellow -->
+                    <Border Padding="6" CornerRadius="4"
+                            Background="{Binding IsYellowActive, Converter={x:Static local:MainWindow.BoolToHighlightConverter}}">
+                        <StackPanel Spacing="2">
+                            <StackPanel Orientation="Horizontal" Spacing="6">
+                                <Ellipse Width="14" Height="14" Fill="#dcc81e"/>
+                                <TextBlock Text="{Binding YellowName}" FontWeight="Bold"/>
+                            </StackPanel>
+                            <TextBlock Text="{Binding YellowStatus}" FontSize="11" Foreground="Gray"/>
+                        </StackPanel>
+                    </Border>
+
+                    <!-- Blue -->
+                    <Border Padding="6" CornerRadius="4"
+                            Background="{Binding IsBlueActive, Converter={x:Static local:MainWindow.BoolToHighlightConverter}}">
+                        <StackPanel Spacing="2">
+                            <StackPanel Orientation="Horizontal" Spacing="6">
+                                <Ellipse Width="14" Height="14" Fill="Blue"/>
+                                <TextBlock Text="{Binding BlueName}" FontWeight="Bold"/>
+                            </StackPanel>
+                            <TextBlock Text="{Binding BlueStatus}" FontSize="11" Foreground="Gray"/>
+                        </StackPanel>
+                    </Border>
+
+                    <!-- Die. Fixed height + a flashing background (never a resize) so the board
+                         never changes size when the rolled number is emphasized. -->
+                    <Border Padding="8" CornerRadius="4" MinHeight="96"
+                            Background="{Binding DieHighlighted, Converter={x:Static local:MainWindow.DieFlashConverter}}">
+                        <StackPanel Spacing="4">
+                            <TextBlock Text="Die" FontWeight="Bold"/>
+                            <TextBlock Text="{Binding DieValue}" FontSize="36" FontWeight="Bold"
+                                       HorizontalAlignment="Center"/>
+                        </StackPanel>
+                    </Border>
+
+                    <Border Padding="8" CornerRadius="4" Background="{StaticResource SystemControlBackgroundChromeMediumBrush}">
+                        <TextBlock Text="{Binding StatusMessage}" TextWrapping="Wrap" FontSize="12"/>
+                    </Border>
+                </StackPanel>
+            </Border>
+
+            <!-- Center: Board -->
+            <local:BoardControl Grid.Column="1" ViewModel="{Binding}"
+                                IsVisible="{Binding IsGameRunning}"
+                                Margin="8"/>
+
+            <!-- Right Panel: Event Log -->
+            <Border Grid.Column="2" IsVisible="{Binding IsGameRunning}" Padding="8" MinWidth="200"
+                    Background="{StaticResource SystemControlBackgroundChromeLowBrush}" CornerRadius="4">
+                <StackPanel Spacing="8">
+                    <TextBlock Text="Event Log" FontWeight="Bold" FontSize="14"/>
+                    <ScrollViewer MaxHeight="650">
+                        <ItemsControl ItemsSource="{Binding EventLog}">
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate>
+                                    <TextBlock Text="{Binding}" FontSize="10" Margin="0,1"
+                                               TextWrapping="Wrap"/>
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+                    </ScrollViewer>
+                </StackPanel>
+            </Border>
+
+            <!-- Copyright notice, fixed bottom-right on both setup and game screens -->
+            <TextBlock Grid.Column="0" Grid.ColumnSpan="3"
+                       Text="(C) Supratim Sanyal + AI Agents"
+                       HorizontalAlignment="Right" VerticalAlignment="Bottom"
+                       Margin="0,0,10,4" FontSize="10" Foreground="#888888" ZIndex="50"/>
+
+            <!-- Game Over Overlay -->
+            <Border Grid.Column="0" Grid.ColumnSpan="3" IsVisible="{Binding IsGameOver}"
+                    Background="#cc000000" ZIndex="100">
+                <StackPanel Spacing="16" HorizontalAlignment="Center" VerticalAlignment="Center">
+                    <TextBlock Text="🏆" FontSize="64" HorizontalAlignment="Center"/>
+                    <TextBlock Text="{Binding WinnerMessage}" FontSize="28" FontWeight="Bold"
+                               Foreground="White" HorizontalAlignment="Center"/>
+                    <StackPanel Orientation="Horizontal" Spacing="16" HorizontalAlignment="Center">
+                        <Button Content="NEW GAME" Command="{Binding NewGameCommand}"
+                                FontSize="16" Padding="20,10"
+                                Background="{StaticResource SystemAccentColorBrush}" Foreground="White"/>
+                        <Button Content="QUIT" Command="{Binding QuitCommand}"
+                                FontSize="16" Padding="20,10"
+                                Background="#cc3333" Foreground="White"/>
+                    </StackPanel>
+                </StackPanel>
+            </Border>
+        </Grid>
+    </Grid>
+</Window>

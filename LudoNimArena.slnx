@@ -1,0 +1,12 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/LudoNimArena.AI/LudoNimArena.AI.csproj" />
+    <Project Path="src/LudoNimArena.App/LudoNimArena.App.csproj" />
+    <Project Path="src/LudoNimArena.Core/LudoNimArena.Core.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/LudoNimArena.AI.Tests/LudoNimArena.AI.Tests.csproj" />
+    <Project Path="tests/LudoNimArena.App.Tests/LudoNimArena.App.Tests.csproj" />
+    <Project Path="tests/LudoNimArena.Core.Tests/LudoNimArena.Core.Tests.csproj" />
+  </Folder>
+</Solution>
