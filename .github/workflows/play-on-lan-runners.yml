@@ -49,7 +49,11 @@ jobs:
       fail-fast: false
       max-parallel: 4
       matrix:
-        label: [lan-linux, lan-macos, lan-win10, lan-win11]
+        # lan-macos is handled by the shell-only job below: that machine runs
+        # macOS Big Sur 11, whose dynamic linker cannot load the runner's
+        # bundled Node.js, so no JavaScript action (checkout, upload-artifact)
+        # can execute there.
+        label: [lan-linux, lan-win10, lan-win11]
     steps:
       - name: Check out repository
         uses: actions/checkout@v4
@@ -140,3 +144,81 @@ jobs:
           name: lan-proof-${{ matrix.label }}
           path: proof/
           if-no-files-found: warn
+
+  # ---------------------------------------------------------------------------
+  # macOS Big Sur 11: shell-only job.
+  #
+  # The runner agent ships its own Node.js, built for a newer macOS. On Big Sur
+  # it aborts with a dyld "Symbol not found" error, so every JavaScript-based
+  # action fails before it starts — including actions/checkout and
+  # actions/upload-artifact. The application itself is perfectly happy there,
+  # so this job does the same work using only shell steps: git for the
+  # checkout, and the proof left on the machine instead of uploaded.
+  # ---------------------------------------------------------------------------
+  play-macos:
+    name: lan-macos (shell-only)
+    runs-on: [self-hosted, lan-macos]
+    continue-on-error: true
+    timeout-minutes: 60
+    steps:
+      - name: Check out with git (no JavaScript actions)
+        shell: bash
+        run: |
+          set -e
+          rm -rf "$HOME/ludo-ci" && mkdir -p "$HOME/ludo-ci"
+          git clone --depth 1 https://github.com/tuklusan/Ludo-Arena.git "$HOME/ludo-ci/repo"
+          cd "$HOME/ludo-ci/repo" && git log --oneline -1
+
+      - name: Record machine identity
+        shell: bash
+        run: |
+          set -e
+          export PATH="$HOME/.dotnet:$PATH"; export DOTNET_ROOT="$HOME/.dotnet"
+          mkdir -p "$HOME/ludo-ci/repo/proof"
+          {
+            echo "runner label : lan-macos (shell-only)"
+            echo "RUNNER_OS    : $RUNNER_OS"
+            echo "RUNNER_ARCH  : $RUNNER_ARCH"
+            echo "machine      : $(uname -s -m)"
+            echo "macOS        : $(sw_vers -productVersion 2>/dev/null || echo n/a)"
+            echo "dotnet SDK   : $(dotnet --version)"
+          } | tee "$HOME/ludo-ci/repo/proof/environment.txt"
+
+      - name: Build (Release)
+        shell: bash
+        run: |
+          set -e
+          export PATH="$HOME/.dotnet:$PATH"; export DOTNET_ROOT="$HOME/.dotnet"
+          cd "$HOME/ludo-ci/repo"
+          dotnet restore LudoNimArena.slnx
+          dotnet build LudoNimArena.slnx -c Release --no-restore
+
+      - name: Play one complete game
+        shell: bash
+        env:
+          LUDO_AUTOSTART: '1'
+          LUDO_SPEED: ${{ inputs.speed }}
+          LUDO_EXIT_ON_GAMEOVER: '1'
+        run: |
+          set -e
+          export PATH="$HOME/.dotnet:$PATH"; export DOTNET_ROOT="$HOME/.dotnet"
+          cd "$HOME/ludo-ci/repo"
+          export LUDO_TRANSCRIPT="$HOME/ludo-ci/repo/proof/transcript.txt"
+          dotnet run --project src/LudoNimArena.App -c Release --no-build
+
+      - name: Verify a full game was completed
+        shell: bash
+        run: |
+          T="$HOME/ludo-ci/repo/proof/transcript.txt"
+          test -f "$T" || { echo "::error::no transcript produced"; exit 1; }
+          grep -q '^GAME COMPLETE$' "$T" || { echo "::error::game did not reach a winner"; tail -20 "$T"; exit 1; }
+          WINNER=$(grep '^WINNER: ' "$T" | tail -1)
+          TURNS=$(grep '^TURNS: '  "$T" | tail -1 | cut -d' ' -f2)
+          echo "$WINNER  ($TURNS turns)"
+          {
+            echo "### lan-macos — macOS Big Sur (self-hosted, shell-only)"
+            echo ""
+            echo "- ${WINNER}"
+            echo "- turns: $TURNS"
+            echo "- proof kept on the machine at \`~/ludo-ci/repo/proof/\` (artifact upload needs JavaScript)"
+          } >> "$GITHUB_STEP_SUMMARY"
