@@ -22,7 +22,7 @@
 # that machine happens to be. Hence one job per platform rather than one matrix:
 #   * Linux   — bash, and can draw on a remote X server so the game is watchable
 #   * Windows — cmd, because these boxes have no Git-for-Windows (so no `bash`)
-#               and a Restricted PowerShell policy blocks the runner.s .ps1 steps
+#               and a Restricted PowerShell policy blocks the runner's .ps1 steps
 #   * macOS   — shell only, because the Big Sur machine cannot run the runner's
 #               bundled Node.js and so cannot execute any JavaScript action
 name: Play on LAN Runners
