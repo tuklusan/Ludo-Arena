@@ -54,6 +54,25 @@ jobs:
       - name: Check out repository
         uses: actions/checkout@v4
 
+      # Self-hosted machines install the SDK wherever they like, and a runner
+      # agent does not inherit a login shell's PATH. Find dotnet, don't assume it.
+      - name: Ensure the .NET SDK is on PATH
+        shell: bash
+        run: |
+          if ! command -v dotnet >/dev/null 2>&1; then
+            for c in "$HOME/.dotnet" /opt/dotnet /usr/local/share/dotnet /usr/local/bin \
+                     "/c/Program Files/dotnet" "$PROGRAMFILES/dotnet"; do
+              if [ -x "$c/dotnet" ] || [ -x "$c/dotnet.exe" ]; then
+                echo "$c" >> "$GITHUB_PATH"
+                echo "DOTNET_ROOT=$c" >> "$GITHUB_ENV"
+                echo "found .NET SDK at $c"
+                break
+              fi
+            done
+          else
+            echo "dotnet already on PATH: $(command -v dotnet)"
+          fi
+
       - name: Record machine identity
         shell: bash
         run: |
