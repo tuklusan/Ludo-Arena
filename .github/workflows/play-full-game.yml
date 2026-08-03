@@ -103,6 +103,8 @@ jobs:
         shell: bash
         env:
           LUDO_TRANSCRIPT: ${{ github.workspace }}/proof/transcript.txt
+          LUDO_SCREENSHOT: ${{ github.workspace }}/proof/board
+          LUDO_SCREENSHOT_INTERVAL: '20'
         run: |
           xvfb-run -a --server-args="-screen 0 1280x900x24" \
             dotnet run --project src/LudoNimArena.App -c Release --no-build
@@ -112,6 +114,8 @@ jobs:
         shell: bash
         env:
           LUDO_TRANSCRIPT: ${{ github.workspace }}/proof/transcript.txt
+          LUDO_SCREENSHOT: ${{ github.workspace }}/proof/board
+          LUDO_SCREENSHOT_INTERVAL: '20'
         run: dotnet run --project src/LudoNimArena.App -c Release --no-build
 
       - name: Verify a full game was completed
