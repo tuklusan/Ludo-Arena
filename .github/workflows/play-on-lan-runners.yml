@@ -12,23 +12,26 @@
 # patent, trademark, and governing-law provisions.
 # ============================================================================
 #
-# Plays a full game on SELF-HOSTED runners (physical machines on a private LAN).
+# Plays a full game on SELF-HOSTED runners (real machines on a private LAN).
 #
 # SECURITY: manual dispatch only. This workflow must never be given a
 # pull_request trigger — self-hosted runners on a public repository would then
 # execute untrusted fork code on real hardware.
 #
-# On Linux the game can be pointed at an X server running on another machine
-# (e.g. MobaXterm on a desktop) so the board is visible live. Windows and macOS
-# use native windowing and have no X11 back end, so they always display on their
-# own console.
+# Hosted runners give you a curated image; self-hosted runners give you whatever
+# that machine happens to be. Hence one job per platform rather than one matrix:
+#   * Linux   — bash, and can draw on a remote X server so the game is watchable
+#   * Windows — PowerShell, because these boxes have no Git-for-Windows and
+#               therefore no `bash` for GitHub's default shell
+#   * macOS   — shell only, because the Big Sur machine cannot run the runner's
+#               bundled Node.js and so cannot execute any JavaScript action
 name: Play on LAN Runners
 
 on:
   workflow_dispatch:
     inputs:
       x_display:
-        description: 'X display for Linux runners (e.g. 192.168.4.56:0). Blank = headless Xvfb.'
+        description: 'X display for the Linux runner (e.g. 192.168.4.56:0). Blank = headless Xvfb.'
         required: false
         default: ''
       speed:
@@ -40,33 +43,24 @@ permissions:
   contents: read
 
 jobs:
-  play:
-    name: ${{ matrix.label }}
-    runs-on: [self-hosted, "${{ matrix.label }}"]
+  # ---------------------------------------------------------------------------
+  # Linux — can render to a remote X server (MobaXterm on a desktop).
+  # ---------------------------------------------------------------------------
+  play-linux:
+    name: lan-linux
+    runs-on: [self-hosted, lan-linux]
     continue-on-error: true
     timeout-minutes: 60
-    strategy:
-      fail-fast: false
-      max-parallel: 4
-      matrix:
-        # lan-macos is handled by the shell-only job below: that machine runs
-        # macOS Big Sur 11, whose dynamic linker cannot load the runner's
-        # bundled Node.js, so no JavaScript action (checkout, upload-artifact)
-        # can execute there.
-        label: [lan-linux, lan-win10, lan-win11]
     steps:
       - name: Check out repository
         uses: actions/checkout@v4
 
-      # Self-hosted machines install the SDK wherever they like, and a runner
-      # agent does not inherit a login shell's PATH. Find dotnet, don't assume it.
       - name: Ensure the .NET SDK is on PATH
         shell: bash
         run: |
           if ! command -v dotnet >/dev/null 2>&1; then
-            for c in "$HOME/.dotnet" /opt/dotnet /usr/local/share/dotnet /usr/local/bin \
-                     "/c/Program Files/dotnet" "$PROGRAMFILES/dotnet"; do
-              if [ -x "$c/dotnet" ] || [ -x "$c/dotnet.exe" ]; then
+            for c in "$HOME/.dotnet" /opt/dotnet /usr/local/share/dotnet /usr/local/bin; do
+              if [ -x "$c/dotnet" ]; then
                 echo "$c" >> "$GITHUB_PATH"
                 echo "DOTNET_ROOT=$c" >> "$GITHUB_ENV"
                 echo "found .NET SDK at $c"
@@ -82,11 +76,11 @@ jobs:
         run: |
           mkdir -p proof
           {
-            echo "runner label : ${{ matrix.label }}"
+            echo "runner label : lan-linux"
             echo "RUNNER_OS    : $RUNNER_OS"
             echo "RUNNER_ARCH  : $RUNNER_ARCH"
-            echo "machine      : $(uname -s -m 2>/dev/null || echo 'n/a')"
-            echo "dotnet SDK   : $(dotnet --version 2>/dev/null || echo 'n/a')"
+            echo "machine      : $(uname -s -m)"
+            echo "dotnet SDK   : $(dotnet --version)"
           } | tee proof/environment.txt
 
       - name: Build (Release)
@@ -104,20 +98,14 @@ jobs:
           LUDO_TRANSCRIPT: ${{ github.workspace }}/proof/transcript.txt
         run: |
           set -e
-          if [ "$RUNNER_OS" = "Linux" ]; then
-            export LIBGL_ALWAYS_SOFTWARE=1 GALLIUM_DRIVER=llvmpipe
-            if [ -n "${{ inputs.x_display }}" ]; then
-              # Draw on a remote X server so the game is watchable live.
-              export DISPLAY="${{ inputs.x_display }}"
-              echo "displaying on $DISPLAY"
-              dotnet run --project src/LudoNimArena.App -c Release --no-build
-            else
-              xvfb-run -a --server-args="-screen 0 1280x900x24" \
-                dotnet run --project src/LudoNimArena.App -c Release --no-build
-            fi
-          else
-            # Windows / macOS: native windowing, shown on that machine's console.
+          export LIBGL_ALWAYS_SOFTWARE=1 GALLIUM_DRIVER=llvmpipe
+          if [ -n "${{ inputs.x_display }}" ]; then
+            export DISPLAY="${{ inputs.x_display }}"
+            echo "drawing on remote X display $DISPLAY"
             dotnet run --project src/LudoNimArena.App -c Release --no-build
+          else
+            xvfb-run -a --server-args="-screen 0 1280x900x24" \
+              dotnet run --project src/LudoNimArena.App -c Release --no-build
           fi
 
       - name: Verify a full game was completed
@@ -130,12 +118,92 @@ jobs:
           TURNS=$(grep '^TURNS: '  "$T" | tail -1 | cut -d' ' -f2)
           echo "$WINNER  ($TURNS turns)"
           {
-            echo "### ${{ matrix.label }} — $RUNNER_OS / $RUNNER_ARCH (self-hosted)"
+            echo "### lan-linux — $RUNNER_OS / $RUNNER_ARCH (self-hosted)"
             echo ""
             echo "- ${WINNER}"
             echo "- turns: $TURNS"
-            echo "- transcript lines: $(wc -l < "$T" | tr -d ' ')"
+            echo "- displayed on: ${{ inputs.x_display != '' && inputs.x_display || 'headless Xvfb' }}"
           } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Upload proof
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: lan-proof-lan-linux
+          path: proof/
+          if-no-files-found: warn
+
+  # ---------------------------------------------------------------------------
+  # Windows — PowerShell only. These machines have no Git for Windows, so
+  # GitHub's default `bash` shell does not exist on them.
+  # ---------------------------------------------------------------------------
+  play-windows:
+    name: ${{ matrix.label }}
+    runs-on: [self-hosted, "${{ matrix.label }}"]
+    continue-on-error: true
+    timeout-minutes: 60
+    strategy:
+      fail-fast: false
+      matrix:
+        label: [lan-win10, lan-win11]
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Record machine identity
+        shell: powershell
+        run: |
+          New-Item -ItemType Directory -Force -Path proof | Out-Null
+          $info = @(
+            "runner label : ${{ matrix.label }}",
+            "RUNNER_OS    : $env:RUNNER_OS",
+            "RUNNER_ARCH  : $env:RUNNER_ARCH",
+            "machine      : $env:PROCESSOR_ARCHITECTURE",
+            "windows      : $([System.Environment]::OSVersion.Version.ToString())",
+            "dotnet SDK   : $(dotnet --version)"
+          )
+          $info | Tee-Object -FilePath proof\environment.txt
+
+      - name: Build (Release)
+        shell: powershell
+        run: |
+          dotnet restore LudoNimArena.slnx
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          dotnet build LudoNimArena.slnx -c Release --no-restore
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+
+      - name: Play one complete game
+        shell: powershell
+        env:
+          LUDO_AUTOSTART: '1'
+          LUDO_SPEED: ${{ inputs.speed }}
+          LUDO_EXIT_ON_GAMEOVER: '1'
+        run: |
+          $env:LUDO_TRANSCRIPT = Join-Path $env:GITHUB_WORKSPACE 'proof\transcript.txt'
+          dotnet run --project src\LudoNimArena.App -c Release --no-build
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+
+      - name: Verify a full game was completed
+        shell: powershell
+        run: |
+          $T = 'proof\transcript.txt'
+          if (-not (Test-Path $T)) { Write-Host '::error::no transcript produced'; exit 1 }
+          $lines = Get-Content $T
+          if (-not ($lines | Select-String -SimpleMatch 'GAME COMPLETE' -Quiet)) {
+            Write-Host '::error::game did not reach a winner'
+            $lines | Select-Object -Last 20
+            exit 1
+          }
+          $winner = ($lines | Select-String '^WINNER: ' | Select-Object -Last 1).Line
+          $turns  = (($lines | Select-String '^TURNS: '  | Select-Object -Last 1).Line -split ' ')[1]
+          Write-Host "$winner ($turns turns)"
+          @(
+            "### ${{ matrix.label }} — $env:RUNNER_OS / $env:RUNNER_ARCH (self-hosted)",
+            "",
+            "- $winner",
+            "- turns: $turns",
+            "- transcript lines: $($lines.Count)"
+          ) | Add-Content -Path $env:GITHUB_STEP_SUMMARY
 
       - name: Upload proof
         if: always()
@@ -146,14 +214,14 @@ jobs:
           if-no-files-found: warn
 
   # ---------------------------------------------------------------------------
-  # macOS Big Sur 11: shell-only job.
+  # macOS Big Sur 11 — shell-only job.
   #
   # The runner agent ships its own Node.js, built for a newer macOS. On Big Sur
-  # it aborts with a dyld "Symbol not found" error, so every JavaScript-based
-  # action fails before it starts — including actions/checkout and
-  # actions/upload-artifact. The application itself is perfectly happy there,
-  # so this job does the same work using only shell steps: git for the
-  # checkout, and the proof left on the machine instead of uploaded.
+  # the dynamic linker aborts with "Symbol not found" before any JavaScript
+  # action can start, so actions/checkout and actions/upload-artifact are both
+  # unusable. The application itself is perfectly happy there, so this job does
+  # the same work with shell steps only: git for the checkout, and the proof
+  # left on the machine instead of uploaded.
   # ---------------------------------------------------------------------------
   play-macos:
     name: lan-macos (shell-only)
