@@ -254,11 +254,15 @@ public class RulesEngine
         foreach (var evt in events)
             newState = newState.WithEvent(evt);
 
-        // Check victory
+        // Check victory. The PlayerWon event must go into BOTH the returned event
+        // collection and the new state — callers observe the returned events, so
+        // recording it only in the state made every win look eventless.
         if (newState.GetPlayer(color).HasWon)
         {
-            newState = newState.WithEvent(new PlayerWon(newState.GameId, color,
-                newState.GetPlayer(color).DisplayName, newState.TurnNumber));
+            var playerWon = new PlayerWon(newState.GameId, color,
+                newState.GetPlayer(color).DisplayName, newState.TurnNumber);
+            events.Add(playerWon);
+            newState = newState.WithEvent(playerWon);
             newState = newState.WithWinner(color);
         }
 

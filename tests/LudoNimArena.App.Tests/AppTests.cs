@@ -28,7 +28,8 @@ public class MainViewModelTests
     public void Constructor_SetsDefaultValues()
     {
         var vm = new MainViewModel();
-        vm.Title.Should().Be("Ludo NIM Arena");
+        // The specification requires this exact user-visible branding.
+        vm.Title.Should().Be("SANYALnet Labs Ludo AI Arena");
         vm.Subtitle.Should().Be("Four AI Players");
         vm.IsSetupVisible.Should().BeTrue();
         vm.IsGameRunning.Should().BeFalse();
@@ -38,11 +39,12 @@ public class MainViewModelTests
     [AvaloniaFact]
     public void Constructor_LoadsPlayerDefaults()
     {
+        // Shipped default roster (editable on the setup screen every game).
         var vm = new MainViewModel();
-        vm.RedName.Should().Be("Red AI");
-        vm.GreenName.Should().Be("Green AI");
-        vm.YellowName.Should().Be("Yellow AI");
-        vm.BlueName.Should().Be("Blue AI");
+        vm.RedName.Should().Be("HAL 9000");
+        vm.GreenName.Should().Be("Marvin");
+        vm.YellowName.Should().Be("Mal");
+        vm.BlueName.Should().Be("Deckard");
     }
 
     [AvaloniaFact]
