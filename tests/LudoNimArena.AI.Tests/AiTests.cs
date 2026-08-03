@@ -159,7 +159,7 @@ public class NimDtosTests
             IsBonusRoll = false,
             TokenPositions = new Dictionary<string, string> { ["red-token-0"] = "track:10" },
             SafeSquares = new List<int> { 0, 8, 13, 21, 26, 34, 39, 47 },
-            LegalMoves = new List<NimLegalMoveDto>
+            LegalMoves = new List<NimMoveDto>
             {
                 new() { MoveId = "red-token-0:track:10->track:15", TokenId = "red-token-0" }
             }

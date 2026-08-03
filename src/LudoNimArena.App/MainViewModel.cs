@@ -31,6 +31,45 @@ public partial class MainViewModel : ObservableObject
     private ImmutableDictionary<PlayerColor, AiPlayerSession>? _sessions;
     private CancellationTokenSource? _gameCts;
 
+    // ---------------------------------------------------------------------
+    // Unattended / CI play support. All opt-in via the environment; with none
+    // of these set the game behaves exactly as it does for a human player.
+    //
+    //   LUDO_AUTOSTART=1        press START GAME automatically (see MainWindow)
+    //   LUDO_SPEED=<multiplier> animation speed; 1 = normal, 50 = 50x faster
+    //   LUDO_TRANSCRIPT=<path>  append every event-log line to a file
+    //   LUDO_EXIT_ON_GAMEOVER=1 close the app once a winner is declared
+    // ---------------------------------------------------------------------
+    private static readonly double AnimationSpeed = ParseAnimationSpeed();
+    private static readonly string? TranscriptPath =
+        Environment.GetEnvironmentVariable("LUDO_TRANSCRIPT");
+    private static readonly bool ExitOnGameOver =
+        Environment.GetEnvironmentVariable("LUDO_EXIT_ON_GAMEOVER") == "1";
+
+    private static double ParseAnimationSpeed()
+    {
+        var raw = Environment.GetEnvironmentVariable("LUDO_SPEED");
+        if (double.TryParse(raw, System.Globalization.NumberStyles.Float,
+                System.Globalization.CultureInfo.InvariantCulture, out var v) && v > 0)
+            return v;
+        return 1.0;
+    }
+
+    /// <summary>Scales a human-paced delay by the configured animation speed.</summary>
+    private static Task DelayAsync(int milliseconds, CancellationToken ct)
+    {
+        if (AnimationSpeed <= 1.0) return Task.Delay(milliseconds, ct);
+        int scaled = (int)Math.Round(milliseconds / AnimationSpeed);
+        return Task.Delay(Math.Max(0, scaled), ct);
+    }
+
+    private static void WriteTranscript(string line)
+    {
+        if (string.IsNullOrEmpty(TranscriptPath)) return;
+        try { File.AppendAllText(TranscriptPath, line + Environment.NewLine); }
+        catch { /* a transcript failure must never break the game */ }
+    }
+
     [ObservableProperty] private string _title = "SANYALnet Labs Ludo AI Arena";
     [ObservableProperty] private string _subtitle = "Four AI Players";
     [ObservableProperty] private string _statusMessage = "Ready";
@@ -188,9 +227,24 @@ public partial class MainViewModel : ObservableObject
             IsGameOver = true;
             WinnerMessage = $"{winner.DisplayName} ({_gameState.Winner}) wins!";
             StatusMessage = WinnerMessage;
+
+            // Machine-checkable completion record for unattended/CI runs.
+            WriteTranscript($"WINNER: {winner.DisplayName} ({_gameState.Winner})");
+            WriteTranscript($"TURNS: {_gameState.TurnNumber}");
+            WriteTranscript("GAME COMPLETE");
         }
 
         UpdateTokenDisplay();
+
+        if (IsGameOver && ExitOnGameOver)
+        {
+            Avalonia.Threading.Dispatcher.UIThread.Post(() =>
+            {
+                if (Avalonia.Application.Current?.ApplicationLifetime
+                    is Avalonia.Controls.ApplicationLifetimes.IClassicDesktopStyleApplicationLifetime desktop)
+                    desktop.Shutdown(0);
+            });
+        }
     }
 
     private async Task<PlayerColor> DetermineFirstPlayerAsync(CancellationToken ct)
@@ -420,7 +474,7 @@ public partial class MainViewModel : ObservableObject
         {
             if (ct.IsCancellationRequested) break;
             DieValue = random.Next(1, 7);
-            await Task.Delay(frameDelay, ct);
+            await DelayAsync(frameDelay, ct);
         }
 
         // End on final value
@@ -433,9 +487,9 @@ public partial class MainViewModel : ObservableObject
         for (int f = 0; f < 3 && !ct.IsCancellationRequested; f++)
         {
             DieHighlighted = true;
-            await Task.Delay(120, ct);
+            await DelayAsync(120, ct);
             DieHighlighted = false;
-            await Task.Delay(90, ct);
+            await DelayAsync(90, ct);
         }
     }
 
@@ -486,12 +540,12 @@ public partial class MainViewModel : ObservableObject
                     MovingCol = c0 + (c1 - c0) * f;
                     MovingFlash = (frame++ % 6) < 3;   // gentle pulse of the moving piece
                     RenderAnimatedTokens();            // triggers a board repaint each frame
-                    await Task.Delay(55, ct);          // ~330 ms per cell: slow and relaxed
+                    await DelayAsync(55, ct);          // ~330 ms per cell: slow and relaxed
                 }
             }
             MovingFlash = false;
             if (move.Captures.Any())
-                await Task.Delay(220, ct);
+                await DelayAsync(220, ct);
         }
         finally
         {
@@ -526,7 +580,7 @@ public partial class MainViewModel : ObservableObject
             case PlayerColor.Blue: IsBlueActive = true; break;
         }
         UpdatePlayerStatus();
-        await Task.Delay(500); // brief highlight
+        await DelayAsync(500, CancellationToken.None); // brief highlight
     }
 
     private void SetAllActive(bool active)
@@ -573,6 +627,9 @@ public partial class MainViewModel : ObservableObject
         EventLog.Insert(0, $"[{timestamp}] {message}");
         while (EventLog.Count > 100)
             EventLog.RemoveAt(EventLog.Count - 1);
+
+        // The on-screen log is capped at 100 lines; the transcript keeps everything.
+        WriteTranscript($"[{timestamp}] {message}");
     }
 
     private static string FormatEvent(DomainEvent evt) => evt switch
