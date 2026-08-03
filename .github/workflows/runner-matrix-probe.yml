@@ -1,0 +1,89 @@
+# ============================================================================
+# Copyright (c) 2026 Supratim Sanyal of SANYALnet Labs.
+# Proprietary rights reserved except as expressly licensed herein.
+#
+# LUDO ARENA
+# This file is governed by the SANYALnet Labs Non-Commercial License in the
+# root LICENSE file. Non-Commercial use is permitted; Commercial Use and use
+# for AI/ML model training are prohibited unless separately authorized.
+#
+# Attribution is required: "Based on original work by Supratim Sanyal of
+# SANYALnet Labs." See LICENSE for full terms, warranty disclaimer, termination,
+# patent, trademark, and governing-law provisions.
+# ============================================================================
+#
+# Runner matrix probe: discovers which GitHub-hosted runners (and CPU
+# architectures) are available to this repository, and verifies that the
+# .NET 10 SDK installs and the C#/Avalonia solution builds on each one.
+# Every job is allowed to fail independently — a label that cannot start is
+# itself a result.
+name: Runner Matrix Probe
+
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - '.github/workflows/runner-matrix-probe.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  probe:
+    name: ${{ matrix.label }}
+    runs-on: ${{ matrix.label }}
+    continue-on-error: true
+    strategy:
+      fail-fast: false
+      matrix:
+        label:
+          - ubuntu-24.04
+          - ubuntu-22.04
+          - ubuntu-24.04-arm
+          - ubuntu-22.04-arm
+          - windows-2025
+          - windows-2022
+          - windows-11-arm
+          - macos-15
+          - macos-14
+          - macos-15-intel
+          - macos-13
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Report runner identity
+        shell: bash
+        run: |
+          echo "label:        ${{ matrix.label }}"
+          echo "RUNNER_OS:    $RUNNER_OS"
+          echo "RUNNER_ARCH:  $RUNNER_ARCH"
+          echo "uname -s -m:  $(uname -s -m 2>/dev/null || echo n/a)"
+          echo "processor:    ${PROCESSOR_ARCHITECTURE:-n/a}"
+
+      - name: Install .NET 10 SDK
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '10.0.x'
+
+      - name: Report .NET SDK
+        shell: bash
+        run: |
+          dotnet --version
+          dotnet --info | head -20
+
+      - name: Restore
+        shell: bash
+        run: dotnet restore LudoNimArena.slnx
+
+      - name: Build (Release)
+        shell: bash
+        run: dotnet build LudoNimArena.slnx -c Release --no-restore
+
+      - name: Summarize
+        if: always()
+        shell: bash
+        run: |
+          echo "### ${{ matrix.label }} — $RUNNER_OS / $RUNNER_ARCH" >> "$GITHUB_STEP_SUMMARY"
+          echo "- machine: \`$(uname -s -m 2>/dev/null || echo windows)\`" >> "$GITHUB_STEP_SUMMARY"
+          echo "- dotnet: \`$(dotnet --version 2>/dev/null || echo 'not installed')\`" >> "$GITHUB_STEP_SUMMARY"
