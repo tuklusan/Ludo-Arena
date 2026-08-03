@@ -1,0 +1,123 @@
+# ============================================================================
+# Copyright (c) 2026 Supratim Sanyal of SANYALnet Labs.
+# Proprietary rights reserved except as expressly licensed herein.
+#
+# LUDO ARENA
+# This file is governed by the SANYALnet Labs Non-Commercial License in the
+# root LICENSE file. Non-Commercial use is permitted; Commercial Use and use
+# for AI/ML model training are prohibited unless separately authorized.
+#
+# Attribution is required: "Based on original work by Supratim Sanyal of
+# SANYALnet Labs." See LICENSE for full terms, warranty disclaimer, termination,
+# patent, trademark, and governing-law provisions.
+# ============================================================================
+#
+# Plays a full game on SELF-HOSTED runners (physical machines on a private LAN).
+#
+# SECURITY: manual dispatch only. This workflow must never be given a
+# pull_request trigger — self-hosted runners on a public repository would then
+# execute untrusted fork code on real hardware.
+#
+# On Linux the game can be pointed at an X server running on another machine
+# (e.g. MobaXterm on a desktop) so the board is visible live. Windows and macOS
+# use native windowing and have no X11 back end, so they always display on their
+# own console.
+name: Play on LAN Runners
+
+on:
+  workflow_dispatch:
+    inputs:
+      x_display:
+        description: 'X display for Linux runners (e.g. 192.168.4.56:0). Blank = headless Xvfb.'
+        required: false
+        default: ''
+      speed:
+        description: 'Animation speed multiplier (1 = human pace, 15 = watchable, 80 = fast)'
+        required: false
+        default: '15'
+
+permissions:
+  contents: read
+
+jobs:
+  play:
+    name: ${{ matrix.label }}
+    runs-on: [self-hosted, "${{ matrix.label }}"]
+    continue-on-error: true
+    timeout-minutes: 60
+    strategy:
+      fail-fast: false
+      max-parallel: 4
+      matrix:
+        label: [lan-linux, lan-macos, lan-win10, lan-win11]
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Record machine identity
+        shell: bash
+        run: |
+          mkdir -p proof
+          {
+            echo "runner label : ${{ matrix.label }}"
+            echo "RUNNER_OS    : $RUNNER_OS"
+            echo "RUNNER_ARCH  : $RUNNER_ARCH"
+            echo "machine      : $(uname -s -m 2>/dev/null || echo 'n/a')"
+            echo "dotnet SDK   : $(dotnet --version 2>/dev/null || echo 'n/a')"
+          } | tee proof/environment.txt
+
+      - name: Build (Release)
+        shell: bash
+        run: |
+          dotnet restore LudoNimArena.slnx
+          dotnet build LudoNimArena.slnx -c Release --no-restore
+
+      - name: Play one complete game
+        shell: bash
+        env:
+          LUDO_AUTOSTART: '1'
+          LUDO_SPEED: ${{ inputs.speed }}
+          LUDO_EXIT_ON_GAMEOVER: '1'
+          LUDO_TRANSCRIPT: ${{ github.workspace }}/proof/transcript.txt
+        run: |
+          set -e
+          if [ "$RUNNER_OS" = "Linux" ]; then
+            export LIBGL_ALWAYS_SOFTWARE=1 GALLIUM_DRIVER=llvmpipe
+            if [ -n "${{ inputs.x_display }}" ]; then
+              # Draw on a remote X server so the game is watchable live.
+              export DISPLAY="${{ inputs.x_display }}"
+              echo "displaying on $DISPLAY"
+              dotnet run --project src/LudoNimArena.App -c Release --no-build
+            else
+              xvfb-run -a --server-args="-screen 0 1280x900x24" \
+                dotnet run --project src/LudoNimArena.App -c Release --no-build
+            fi
+          else
+            # Windows / macOS: native windowing, shown on that machine's console.
+            dotnet run --project src/LudoNimArena.App -c Release --no-build
+          fi
+
+      - name: Verify a full game was completed
+        shell: bash
+        run: |
+          T=proof/transcript.txt
+          test -f "$T" || { echo "::error::no transcript produced"; exit 1; }
+          grep -q '^GAME COMPLETE$' "$T" || { echo "::error::game did not reach a winner"; tail -20 "$T"; exit 1; }
+          WINNER=$(grep '^WINNER: ' "$T" | tail -1)
+          TURNS=$(grep '^TURNS: '  "$T" | tail -1 | cut -d' ' -f2)
+          echo "$WINNER  ($TURNS turns)"
+          {
+            echo "### ${{ matrix.label }} — $RUNNER_OS / $RUNNER_ARCH (self-hosted)"
+            echo ""
+            echo "- ${WINNER}"
+            echo "- turns: $TURNS"
+            echo "- transcript lines: $(wc -l < "$T" | tr -d ' ')"
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Upload proof
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: lan-proof-${{ matrix.label }}
+          path: proof/
+          if-no-files-found: warn
