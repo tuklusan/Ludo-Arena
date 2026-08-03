@@ -150,60 +150,58 @@ jobs:
       - name: Check out repository
         uses: actions/checkout@v4
 
+      # These steps use cmd, not PowerShell, and deliberately so. The runner
+      # writes every `shell: powershell` step to a temporary .ps1 file, which a
+      # Restricted PowerShell execution policy refuses to load
+      # ("running scripts is disabled on this system"). Execution policy governs
+      # script FILES, not inline `-Command` strings — so cmd (optionally calling
+      # `powershell -NoProfile -Command`) works on a locked-down machine without
+      # changing any security setting. This is the same tether used to drive
+      # these two machines in Part 3.
       - name: Record machine identity
-        shell: powershell
+        shell: cmd
         run: |
-          New-Item -ItemType Directory -Force -Path proof | Out-Null
-          $info = @(
-            "runner label : ${{ matrix.label }}",
-            "RUNNER_OS    : $env:RUNNER_OS",
-            "RUNNER_ARCH  : $env:RUNNER_ARCH",
-            "machine      : $env:PROCESSOR_ARCHITECTURE",
-            "windows      : $([System.Environment]::OSVersion.Version.ToString())",
-            "dotnet SDK   : $(dotnet --version)"
-          )
-          $info | Tee-Object -FilePath proof\environment.txt
+          if not exist proof mkdir proof
+          (
+            echo runner label : ${{ matrix.label }}
+            echo RUNNER_OS    : %RUNNER_OS%
+            echo RUNNER_ARCH  : %RUNNER_ARCH%
+            echo machine      : %PROCESSOR_ARCHITECTURE%
+            echo windows      : %OS%
+          ) > proof\environment.txt
+          for /f "delims=" %%V in ('dotnet --version') do echo dotnet SDK   : %%V>> proof\environment.txt
+          type proof\environment.txt
 
       - name: Build (Release)
-        shell: powershell
+        shell: cmd
         run: |
-          dotnet restore LudoNimArena.slnx
-          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
-          dotnet build LudoNimArena.slnx -c Release --no-restore
-          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          dotnet restore LudoNimArena.slnx || exit /b 1
+          dotnet build LudoNimArena.slnx -c Release --no-restore || exit /b 1
 
       - name: Play one complete game
-        shell: powershell
+        shell: cmd
         env:
           LUDO_AUTOSTART: '1'
           LUDO_SPEED: ${{ inputs.speed }}
           LUDO_EXIT_ON_GAMEOVER: '1'
-        run: |
-          $env:LUDO_TRANSCRIPT = Join-Path $env:GITHUB_WORKSPACE 'proof\transcript.txt'
-          dotnet run --project src\LudoNimArena.App -c Release --no-build
-          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          LUDO_TRANSCRIPT: ${{ github.workspace }}\proof\transcript.txt
+        run: dotnet run --project src\LudoNimArena.App -c Release --no-build || exit /b 1
 
       - name: Verify a full game was completed
-        shell: powershell
+        shell: cmd
         run: |
-          $T = 'proof\transcript.txt'
-          if (-not (Test-Path $T)) { Write-Host '::error::no transcript produced'; exit 1 }
-          $lines = Get-Content $T
-          if (-not ($lines | Select-String -SimpleMatch 'GAME COMPLETE' -Quiet)) {
-            Write-Host '::error::game did not reach a winner'
-            $lines | Select-Object -Last 20
-            exit 1
-          }
-          $winner = ($lines | Select-String '^WINNER: ' | Select-Object -Last 1).Line
-          $turns  = (($lines | Select-String '^TURNS: '  | Select-Object -Last 1).Line -split ' ')[1]
-          Write-Host "$winner ($turns turns)"
-          @(
-            "### ${{ matrix.label }} — $env:RUNNER_OS / $env:RUNNER_ARCH (self-hosted)",
-            "",
-            "- $winner",
-            "- turns: $turns",
-            "- transcript lines: $($lines.Count)"
-          ) | Add-Content -Path $env:GITHUB_STEP_SUMMARY
+          set "T=proof\transcript.txt"
+          if not exist "%T%" ( echo ::error::no transcript produced & exit /b 1 )
+          findstr /b /c:"GAME COMPLETE" "%T%" >nul || ( echo ::error::game did not reach a winner & exit /b 1 )
+          for /f "delims=" %%A in ('findstr /b /c:"WINNER: " "%T%"') do set "WINNER=%%A"
+          for /f "tokens=2" %%B in ('findstr /b /c:"TURNS: " "%T%"') do set "TURNS=%%B"
+          for /f %%C in ('find /c /v "" ^< "%T%"') do set "LINES=%%C"
+          echo %WINNER%  (%TURNS% turns^)
+          >>"%GITHUB_STEP_SUMMARY%" echo ### ${{ matrix.label }} — %RUNNER_OS% / %RUNNER_ARCH% (self-hosted^)
+          >>"%GITHUB_STEP_SUMMARY%" echo.
+          >>"%GITHUB_STEP_SUMMARY%" echo - %WINNER%
+          >>"%GITHUB_STEP_SUMMARY%" echo - turns: %TURNS%
+          >>"%GITHUB_STEP_SUMMARY%" echo - transcript lines: %LINES%
 
       - name: Upload proof
         if: always()
