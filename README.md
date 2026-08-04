@@ -87,6 +87,50 @@ and turn count.
 - Cancellation-aware retry, throttling and a circuit breaker around the NIM client (handles
   HTTP 429/529, `Retry-After`, long server waits) — the UI never freezes on the network.
 
+## Download — v1.0.0
+
+Prebuilt packages for six platform/architecture combinations are on the
+[**Releases**](https://github.com/tuklusan/Ludo-Arena/releases/latest) page.
+
+| Platform | x64 | arm64 |
+|---|---|---|
+| Linux | `LudoArena-1.0.0-linux-x64.tar.gz` | `LudoArena-1.0.0-linux-arm64.tar.gz` |
+| Windows | `LudoArena-1.0.0-win-x64.zip` | `LudoArena-1.0.0-win-arm64.zip` |
+| macOS | `LudoArena-1.0.0-osx-x64.tar.gz` | `LudoArena-1.0.0-osx-arm64.tar.gz` |
+
+These are **minimal, framework-dependent** builds — roughly 10–13 MB, because they use the .NET 10
+runtime you already have rather than bundling their own copy. There is no installer: extract the
+archive and run the binary. Nothing is written outside the folder, no registry keys are added and no
+services are installed, so uninstalling is deleting the folder.
+
+**Prerequisite:** the [.NET 10 Desktop Runtime](https://dotnet.microsoft.com/download/dotnet/10.0)
+(`dotnet --list-runtimes` to check).
+
+```bash
+# Linux / macOS
+tar -xzf LudoArena-1.0.0-linux-x64.tar.gz -C ludo-arena && cd ludo-arena
+chmod +x LudoNimArena.App        # archives are built on Windows; restore the exec bit
+./LudoNimArena.App
+```
+
+```powershell
+# Windows
+Expand-Archive LudoArena-1.0.0-win-x64.zip -DestinationPath ludo-arena; cd ludo-arena
+.\LudoNimArena.App.exe
+```
+
+Each archive contains `INSTALL.txt` and `LICENSE`. Verify a download against `SHA256SUMS.txt`:
+
+```bash
+sha256sum -c SHA256SUMS.txt --ignore-missing
+```
+
+Two platform notes. On **macOS**, Gatekeeper quarantines downloaded files — clear it with
+`xattr -dr com.apple.quarantine .` in the extracted folder. On **Windows 11**, Smart App Control (if
+enforcing) refuses to load unsigned binaries and the app will not start, reporting
+`An Application Control policy has blocked this file (0x800711C7)`; this affects any unsigned build.
+Building from source, as below, avoids both.
+
 ## Requirements
 
 - **.NET 10 SDK** (`net10.0`). Verify with `dotnet --info`.

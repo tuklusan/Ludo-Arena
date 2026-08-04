@@ -24,4 +24,19 @@
     <EnforceCodeStyleInBuild>true</EnforceCodeStyleInBuild>
     <ManagePackageVersionsCentrally>true</ManagePackageVersionsCentrally>
   </PropertyGroup>
+
+  <!-- Release identity. Stamped into every assembly in the solution. -->
+  <PropertyGroup>
+    <Version>1.0.0</Version>
+    <AssemblyVersion>1.0.0.0</AssemblyVersion>
+    <FileVersion>1.0.0.0</FileVersion>
+    <InformationalVersion>1.0.0</InformationalVersion>
+    <Product>SANYALnet Labs Ludo AI Arena</Product>
+    <Company>SANYALnet Labs</Company>
+    <Authors>Supratim Sanyal</Authors>
+    <Copyright>Copyright (c) 2026 Supratim Sanyal of SANYALnet Labs</Copyright>
+    <Description>Cross-platform desktop Ludo with four autonomous AI players (NVIDIA NIM with a deterministic local fallback). Built with C# on .NET 10 and Avalonia UI.</Description>
+    <RepositoryUrl>https://github.com/tuklusan/Ludo-Arena</RepositoryUrl>
+    <PackageProjectUrl>https://github.com/tuklusan/Ludo-Arena</PackageProjectUrl>
+  </PropertyGroup>
 </Project>
