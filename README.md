@@ -18,13 +18,24 @@ Linux, Windows and macOS.
 
 ## Screenshots
 
-| Linux | Windows 10 |
-|---|---|
-| ![Linux](screenshots/linux.png) | ![Windows 10](screenshots/windows10.png) |
+Each image is the final board of one complete game — first roll to declared winner — rendered by the
+application itself on that platform. The winning player's card reads `Done:4`.
 
-| Windows 11 | macOS Big Sur |
+| Linux (x64) | Linux (arm64) |
 |---|---|
-| ![Windows 11](screenshots/windows11.png) | ![macOS](screenshots/macos.png) |
+| ![Linux x64](screenshots/github-hosted-linux-ubuntu-24.04-x64.png) | ![Linux arm64](screenshots/github-hosted-linux-ubuntu-24.04-arm64.png) |
+
+| Windows (x64) | Windows on Arm (arm64) |
+|---|---|
+| ![Windows x64](screenshots/github-hosted-windows-server-2025-x64.png) | ![Windows arm64](screenshots/github-hosted-windows-11-arm64.png) |
+
+| macOS (Apple Silicon) | macOS (Intel) |
+|---|---|
+| ![macOS arm64](screenshots/github-hosted-macos-15-apple-silicon-arm64.png) | ![macOS x64](screenshots/github-hosted-macos-15-intel-x64.png) |
+
+Thirteen platform captures in total, including physical machines running Windows 10 and macOS
+Big Sur 11.7.11 — see [`screenshots/`](screenshots/) and
+[`screenshots/MANIFEST.txt`](screenshots/MANIFEST.txt) for the winner and turn count behind each one.
 
 ## Features
 

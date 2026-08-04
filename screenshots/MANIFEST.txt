@@ -1,0 +1,38 @@
+SANYALnet Labs Ludo AI Arena — Part 4 runner screenshots
+=========================================================
+Each image is the FINAL board frame of one complete game (first roll to declared
+winner), rendered by the application itself via Avalonia RenderTargetBitmap.
+The winning player's card reads Done:4 and is highlighted.
+
+Common to every image:
+  .NET SDK 10.0.302   target net10.0   Avalonia 11.2.8
+  Identical source, no platform-specific code.
+
+GITHUB-HOSTED RUNNERS
+  github-hosted-linux-ubuntu-24.04-x64.png ......... Linux x64      Mal (Yellow), 508 turns
+  github-hosted-linux-ubuntu-22.04-x64.png ......... Linux x64      HAL 9000 (Red), 367 turns
+  github-hosted-linux-ubuntu-24.04-arm64.png ....... Linux arm64    Mal (Yellow), 367 turns
+  github-hosted-linux-ubuntu-22.04-arm64.png ....... Linux arm64    Mal (Yellow), 352 turns
+  github-hosted-windows-server-2025-x64.png ........ Windows x64    Marvin (Green), 246 turns
+  github-hosted-windows-server-2022-x64.png ........ Windows x64    Mal (Yellow), 322 turns
+  github-hosted-windows-11-arm64.png ............... Windows arm64  HAL 9000 (Red), 406 turns
+  github-hosted-macos-15-apple-silicon-arm64.png ... macOS arm64    Mal (Yellow), 413 turns
+  github-hosted-macos-14-apple-silicon-arm64.png ... macOS arm64    Marvin (Green), 420 turns
+  github-hosted-macos-15-intel-x64.png ............. macOS x64      HAL 9000 (Red), 349 turns
+
+SELF-HOSTED MACHINES (private LAN)
+  self-hosted-lan-linux-ubuntu-x64.png ............. Linux x64      Deckard (Blue), 327 turns
+  self-hosted-lan-windows-10-x64.png ............... Windows 10 x64 Marvin (Green), 261 turns
+  self-hosted-lan-macos-big-sur-11.7.11-x64.png .... macOS 11.7.11  Deckard (Blue), 178 turns
+      (dark mode - the app follows the host's appearance setting)
+
+NOT PICTURED
+  github-hosted macos-13 ... never scheduled by GitHub (image being retired);
+                             macOS/Intel x64 is covered by macos-15-intel.
+  self-hosted lan-win11 .... built fine, but Windows 11 Smart App Control blocks
+                             loading the freshly-built unsigned assembly
+                             (0x800711C7). Windows 11 itself is proven by the
+                             hosted windows-11-arm runner above.
+
+Every winner/turn count differs because each is a genuinely independent game
+(the die uses a cryptographic RNG).
