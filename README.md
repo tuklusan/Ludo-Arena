@@ -18,24 +18,56 @@ Linux, Windows and macOS.
 
 ## Screenshots
 
-Each image is the final board of one complete game — first roll to declared winner — rendered by the
-application itself on that platform. The winning player's card reads `Done:4`.
+Thirteen platforms, one game each. Every image is the **final board of a complete game** — first
+roll to declared winner — rendered by the application itself on that machine, so the winning
+player's card reads `Done:4`. The winners and turn counts all differ because each is a genuinely
+independent game; the die uses a cryptographic RNG.
 
-| Linux (x64) | Linux (arm64) |
-|---|---|
-| ![Linux x64](screenshots/github-hosted-linux-ubuntu-24.04-x64.png) | ![Linux arm64](screenshots/github-hosted-linux-ubuntu-24.04-arm64.png) |
+### Linux
 
-| Windows (x64) | Windows on Arm (arm64) |
-|---|---|
-| ![Windows x64](screenshots/github-hosted-windows-server-2025-x64.png) | ![Windows arm64](screenshots/github-hosted-windows-11-arm64.png) |
+| Ubuntu 24.04 · x64 | Ubuntu 24.04 · **arm64** |
+|:--:|:--:|
+| ![Ubuntu 24.04 x64](screenshots/github-hosted-linux-ubuntu-24.04-x64.png) | ![Ubuntu 24.04 arm64](screenshots/github-hosted-linux-ubuntu-24.04-arm64.png) |
+| Mal (Yellow) — 508 turns | Mal (Yellow) — 367 turns |
 
-| macOS (Apple Silicon) | macOS (Intel) |
-|---|---|
-| ![macOS arm64](screenshots/github-hosted-macos-15-apple-silicon-arm64.png) | ![macOS x64](screenshots/github-hosted-macos-15-intel-x64.png) |
+| Ubuntu 22.04 · x64 | Ubuntu 22.04 · **arm64** |
+|:--:|:--:|
+| ![Ubuntu 22.04 x64](screenshots/github-hosted-linux-ubuntu-22.04-x64.png) | ![Ubuntu 22.04 arm64](screenshots/github-hosted-linux-ubuntu-22.04-arm64.png) |
+| HAL 9000 (Red) — 367 turns | Mal (Yellow) — 352 turns |
 
-Thirteen platform captures in total, including physical machines running Windows 10 and macOS
-Big Sur 11.7.11 — see [`screenshots/`](screenshots/) and
-[`screenshots/MANIFEST.txt`](screenshots/MANIFEST.txt) for the winner and turn count behind each one.
+### Windows
+
+| Windows Server 2025 · x64 | Windows Server 2022 · x64 |
+|:--:|:--:|
+| ![Windows Server 2025](screenshots/github-hosted-windows-server-2025-x64.png) | ![Windows Server 2022](screenshots/github-hosted-windows-server-2022-x64.png) |
+| Marvin (Green) — 246 turns | Mal (Yellow) — 322 turns |
+
+| Windows 11 on Arm · **arm64** | Windows 10 · x64 *(physical machine)* |
+|:--:|:--:|
+| ![Windows 11 arm64](screenshots/github-hosted-windows-11-arm64.png) | ![Windows 10](screenshots/self-hosted-lan-windows-10-x64.png) |
+| HAL 9000 (Red) — 406 turns | Marvin (Green) — 261 turns |
+
+### macOS
+
+| macOS 15 · Apple Silicon | macOS 14 · Apple Silicon |
+|:--:|:--:|
+| ![macOS 15 Apple Silicon](screenshots/github-hosted-macos-15-apple-silicon-arm64.png) | ![macOS 14 Apple Silicon](screenshots/github-hosted-macos-14-apple-silicon-arm64.png) |
+| Mal (Yellow) — 413 turns | Marvin (Green) — 420 turns |
+
+| macOS 15 · Intel x64 | macOS Big Sur 11.7.11 · Intel *(physical machine)* |
+|:--:|:--:|
+| ![macOS 15 Intel](screenshots/github-hosted-macos-15-intel-x64.png) | ![macOS Big Sur](screenshots/self-hosted-lan-macos-big-sur-11.7.11-x64.png) |
+| HAL 9000 (Red) — 349 turns | Deckard (Blue) — 178 turns · *dark mode, following the host's appearance* |
+
+### Physical Linux desktop
+
+| Ubuntu · x64 *(physical machine)* |
+|:--:|
+| ![LAN Linux](screenshots/self-hosted-lan-linux-ubuntu-x64.png) |
+| Deckard (Blue) — 327 turns |
+
+[`screenshots/MANIFEST.txt`](screenshots/MANIFEST.txt) lists every image with its platform, winner
+and turn count.
 
 ## Features
 
