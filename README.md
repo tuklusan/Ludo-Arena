@@ -1,8 +1,11 @@
 # SANYALnet Labs Ludo AI Arena
 
 > Cross-platform desktop Ludo with four autonomous AI players (NVIDIA NIM + deterministic local
-> fallback). C# / .NET 10 / Avalonia. Built by ChatDev 2.0; verified on Linux, Windows 10/11 and
-> macOS. &mdash; <https://github.com/tuklusan/Ludo-Arena>
+> fallback). C# / .NET 10 / Avalonia. Built by ChatDev 2.0; verified on Linux, Windows and macOS
+> across x64 and arm64. &mdash; <https://github.com/tuklusan/Ludo-Arena>
+
+📖 **Written up as a blog series — start at
+[Part 1: Install ChatDev 2.0 on Linux](https://supratim-sanyal.blogspot.com/2026/07/install-chatdev-ai-agents-linux_01345372577.html).**
 
 A polished, cross-platform desktop **Ludo** game in which **four autonomous AI players** play a
 full match automatically — animated die, tokens gliding cell by cell, captures, blockades, bonus
@@ -236,9 +239,18 @@ See `screenshots/`, and the workflows in [`.github/workflows/`](.github/workflow
 ## Origin
 
 This game was built by **ChatDev 2.0**, a multi-agent "virtual software company," from the
-specification in [`docs/REQUIREMENTS_PROMPT.md`](docs/REQUIREMENTS_PROMPT.md). The full story —
-five free models that failed and one ~\$1 paid DeepSeek run that shipped it — is written up as a
-blog series on [Supratim Sanyal's Blog](https://supratim-sanyal.blogspot.com/).
+specification in [`docs/REQUIREMENTS_PROMPT.md`](docs/REQUIREMENTS_PROMPT.md) — five free models
+failed at it, and one paid DeepSeek run costing about a dollar shipped it.
+
+The whole story is written up as a blog series on
+[Supratim Sanyal's Blog](https://supratim-sanyal.blogspot.com/). **Start here:**
+
+> ### 📖 [Part 1 — Install ChatDev 2.0 on Linux: AI Agents That Build Real Software](https://supratim-sanyal.blogspot.com/2026/07/install-chatdev-ai-agents-linux_01345372577.html)
+
+The series then builds progressively: Part 2 has the agents build a live AI news debate wall,
+Part 3 covers this game — the model shoot-out and the two silent bugs a green build hid — and
+Part 4 turns it into this public repository and proves it on every GitHub runner and CPU
+architecture.
 
 ## License
 
