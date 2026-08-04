@@ -26,7 +26,7 @@ missing=0
 checked=0
 while IFS= read -r f; do
   case "$f" in
-    *.cs|*.axaml|*.py|*.sh|*.toml|*.yml|*.yaml|*.csproj|*.props|*.slnx) ;;
+    *.cs|*.axaml|*.py|*.sh|*.toml|*.yml|*.yaml|*.csproj|*.props|*.slnx|*.config) ;;
     *) continue ;;
   esac
   checked=$((checked+1))

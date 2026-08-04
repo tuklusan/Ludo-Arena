@@ -92,20 +92,68 @@ dotnet run --project src/LudoNimArena.App -c Release
 If the key is missing or a model is unavailable, the game starts normally, warns, and uses the
 local fallback AI. Every move is labelled with its source, so a fully-fallback game is obvious.
 
+## Unattended / automated play
+
+All of the following are **opt-in**. With none of them set the game behaves exactly as it does for a
+human player — normal pacing, waiting for you to press START GAME.
+
+| Variable | Purpose |
+|---|---|
+| `LUDO_AUTOSTART=1` | press START GAME automatically shortly after the window opens |
+| `LUDO_SPEED=<n>` | animation-speed multiplier; `1` is human pace, `15` is watchable, `80` is fast |
+| `LUDO_TRANSCRIPT=<path>` | append every event-log line to a file (the on-screen log keeps only the last 100 lines; the transcript keeps everything) |
+| `LUDO_EXIT_ON_GAMEOVER=1` | close the application once a winner is declared, giving a clean exit code |
+| `LUDO_SCREENSHOT=<prefix>` | save `<prefix>-001.png`, `-002.png`, … while playing and `<prefix>-final.png` at the winner screen |
+| `LUDO_SCREENSHOT_INTERVAL=<secs>` | how often to grab a frame (default 25) |
+
+Play one complete game unattended and leave machine-checkable proof behind:
+
+```bash
+LUDO_AUTOSTART=1 LUDO_SPEED=80 LUDO_EXIT_ON_GAMEOVER=1 \
+LUDO_TRANSCRIPT=./proof/transcript.txt LUDO_SCREENSHOT=./proof/board \
+  dotnet run --project src/LudoNimArena.App -c Release
+```
+
+The transcript ends with a fixed, greppable footer:
+
+```
+WINNER: Marvin (Green)
+TURNS: 295
+GAME COMPLETE
+```
+
+Screenshots are produced by the application rendering its own window (Avalonia
+`RenderTargetBitmap`), not by an OS screen-capture tool — so they work with no attached display,
+under a virtual X server, and from a non-interactive service session.
+
+On a headless Linux machine, run the real GUI inside a virtual X server:
+
+```bash
+xvfb-run -a --server-args="-screen 0 1280x900x24" dotnet run --project src/LudoNimArena.App -c Release
+```
+
 ## Project structure
 
 ```
-LudoNimArena.slnx            # solution
-Directory.Build.props        # shared MSBuild settings
-Directory.Packages.props     # centrally pinned package versions
-global.json                  # pinned .NET 10 SDK
-src/LudoNimArena.Core        # rules, board geometry, state, legal moves, die abstractions
-src/LudoNimArena.AI          # NIM client, per-player sessions, DTOs, local fallback AI
-src/LudoNimArena.App         # Avalonia startup, MVVM, board rendering, animation
-tests/                       # Core / AI / App test projects
-scripts/  *.py  env_check.sh # build and environment-inspection harnesses
-docs/REQUIREMENTS_PROMPT.md  # the exact specification the build was driven from
+LudoNimArena.slnx               # solution
+Directory.Build.props           # shared MSBuild settings (net10.0, nullable, implicit usings)
+Directory.Packages.props        # centrally pinned package versions
+NuGet.config                    # pins nuget.org, clears inherited sources (reproducible restore)
+global.json                     # pinned .NET 10 SDK (10.0.302, latestPatch roll-forward)
+src/LudoNimArena.Core           # rules, board geometry, state, legal moves, die abstractions
+src/LudoNimArena.AI             # NIM client, per-player sessions, DTOs, local fallback AI
+src/LudoNimArena.App            # Avalonia startup, MVVM, board rendering, animation
+tests/                          # Core / AI / App test projects
+scripts/check_license_headers.sh# license-header gate (also enforced in CI)
+scripts/  *.py  env_check.sh    # build and environment-inspection harnesses
+docs/REQUIREMENTS_PROMPT.md     # the exact specification the build was driven from
+.github/workflows/              # CI: header gate, runner probe, full-game runs
+LICENSE                         # SANYALnet Labs non-commercial license
 ```
+
+Every source file carries the license header, and
+[`scripts/check_license_headers.sh`](scripts/check_license_headers.sh) fails the build if one is
+missing. It runs on every push and pull request.
 
 ## Tests
 
@@ -113,21 +161,41 @@ docs/REQUIREMENTS_PROMPT.md  # the exact specification the build was driven from
 dotnet test LudoNimArena.slnx -c Release
 ```
 
-The Core tests include deterministic four-player fallback simulations that check board invariants
-after every move.
+**71 tests** — Core 52, AI 11, App 8. The Core tests include deterministic four-player fallback
+simulations that check board invariants after every move; the App tests use Avalonia's headless
+platform.
 
 ## Cross-platform verification
 
-The **identical source** in this repository was built and run, with zero code changes and zero
-build errors, on four machines: a Linux desktop, Windows 10, Windows 11, and macOS Big Sur 11
-(.NET 10.0.302). Each brought up the same window and played a full game — see `screenshots/`.
+The **identical source** in this repository — no platform-specific code, no conditional compilation
+— builds and plays a complete game on three operating systems and two CPU architectures.
+
+CI does not merely compile it: on every runner it builds Release, runs all 71 tests, then **launches
+the real Avalonia application** and plays one full game from first roll to declared winner, checking
+the transcript and uploading it with board screenshots as artifacts. Linux runners have no display,
+so the real GUI runs inside a virtual X server.
+
+| Platform | x64 | arm64 |
+|---|---|---|
+| Linux (Ubuntu 22.04 / 24.04) | ✅ | ✅ |
+| Windows (Server 2022 / 2025, Windows 11 on Arm) | ✅ | ✅ |
+| macOS (14 / 15, Intel and Apple Silicon) | ✅ | ✅ |
+
+Also verified on physical machines: a Linux desktop, Windows 10, and macOS Big Sur 11.7.11 — the
+last of which is a 2020 release still running the current .NET 10 SDK (10.0.302) and Avalonia 11.2.8.
+See `screenshots/`, and the workflows in [`.github/workflows/`](.github/workflows/).
+
+> **Note for Windows 11 users:** Smart App Control, when enforcing, refuses to load locally-built
+> unsigned assemblies and the game will fail to start with
+> `An Application Control policy has blocked this file (0x800711C7)`. This affects any unsigned
+> build, not just this one. Signing with a reputable certificate is the proper fix.
 
 ## Origin
 
 This game was built by **ChatDev 2.0**, a multi-agent "virtual software company," from the
 specification in [`docs/REQUIREMENTS_PROMPT.md`](docs/REQUIREMENTS_PROMPT.md). The full story —
-five free models that failed and one ~\$1 paid DeepSeek run that shipped it — is written up in a
-three-part blog series on [Supratim Sanyal's Blog](https://supratim-sanyal.blogspot.com/).
+five free models that failed and one ~\$1 paid DeepSeek run that shipped it — is written up as a
+blog series on [Supratim Sanyal's Blog](https://supratim-sanyal.blogspot.com/).
 
 ## License
 

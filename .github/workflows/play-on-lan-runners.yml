@@ -18,6 +18,18 @@
 # pull_request trigger — self-hosted runners on a public repository would then
 # execute untrusted fork code on real hardware.
 #
+# SECURITY — TEAR DOWN WHEN FINISHED. A registered self-hosted runner is a
+# machine sitting and waiting for GitHub to send it code to execute, inside your
+# network, as your user. When you are done, deregister every runner FIRST (that
+# revokes dispatch immediately, even if an agent is still running):
+#
+#   gh api repos/<owner>/<repo>/actions/runners -q '.runners[].id' |
+#     while read id; do gh api -X DELETE "repos/<owner>/<repo>/actions/runners/$id"; done
+#   gh api repos/<owner>/<repo>/actions/runners -q '.total_count'   # must print 0
+#
+# Then stop each agent, and check whether it was installed as a service — a
+# service comes back after a reboot, a plain run.sh/run.cmd process does not.
+#
 # Hosted runners give you a curated image; self-hosted runners give you whatever
 # that machine happens to be. Hence one job per platform rather than one matrix:
 #   * Linux   — bash, and can draw on a remote X server so the game is watchable
@@ -31,7 +43,7 @@ on:
   workflow_dispatch:
     inputs:
       x_display:
-        description: 'X display for the Linux runner (e.g. 192.168.4.56:0). Blank = headless Xvfb.'
+        description: 'X display for the Linux runner, e.g. <your-desktop-ip>:0. Blank = headless Xvfb.'
         required: false
         default: ''
       speed:
