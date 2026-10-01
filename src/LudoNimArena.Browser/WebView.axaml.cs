@@ -18,6 +18,7 @@ using Avalonia.Data.Converters;
 using Avalonia.Media;
 using Avalonia.Threading;
 using LudoNimArena.App;
+using LudoNimArena.Core;
 
 namespace LudoNimArena.Browser;
 
@@ -67,6 +68,29 @@ public partial class WebView : UserControl
     private void OnViewModelChanged(object? sender, PropertyChangedEventArgs e)
     {
         if (e.PropertyName == nameof(MainViewModel.IsSetupVisible)) StartIfCompact();
+        else if (e.PropertyName == nameof(MainViewModel.IsGameRunning) && _vm is { IsGameRunning: true })
+            Dispatcher.UIThread.Post(ShowStartingPositions);
+    }
+
+    // The shared view model only fills the board at the start of the first turn, so during the
+    // opening roll-off the homes would be empty. Show all 16 tokens in their yards from the
+    // moment the game starts (the view model replaces them on its first update).
+    private void ShowStartingPositions()
+    {
+        if (_vm is not { IsGameRunning: true } vm || vm.Tokens.Count > 0) return;
+
+        foreach (var color in new[] { PlayerColor.Red, PlayerColor.Green, PlayerColor.Yellow, PlayerColor.Blue })
+            for (int i = 0; i < 4; i++)
+            {
+                var token = new Token(color, i);
+                var pos = token.GetPosition();
+                vm.Tokens.Add(new TokenDisplayInfo(
+                    token.Id, token.Color, token.State, token.Progress,
+                    pos?.Row ?? -1, pos?.Col ?? -1, token.Index));
+            }
+
+        const string start = "Yard:4 Track:0 Home:0 Done:0";
+        vm.RedStatus = vm.GreenStatus = vm.YellowStatus = vm.BlueStatus = start;
     }
 
     // Phones skip the player-setup screen: the game starts straight away (and again after
