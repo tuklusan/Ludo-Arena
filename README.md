@@ -1,17 +1,70 @@
 # SANYALnet Labs Ludo AI Arena
 
-> Cross-platform desktop Ludo with four autonomous AI players (NVIDIA NIM + deterministic local
-> fallback). C# / .NET 10 / Avalonia. Built by ChatDev 2.0; verified on Linux, Windows and macOS
-> across x64 and arm64. &mdash; <https://github.com/tuklusan/Ludo-Arena>
+> Ludo with four autonomous players: play it **in your browser**, or run the **desktop app** with
+> NVIDIA NIM language-model players (+ a deterministic local fallback). C# / .NET 10 / Avalonia.
+> Built by ChatDev 2.0; verified on Linux, Windows and macOS across x64 and arm64. &mdash; <https://github.com/tuklusan/Ludo-Arena>
+
+## ▶ Play online, or download
+
+**[▶ Play online now](https://tuklusan.github.io/Ludo-Arena/)** — in your browser, nothing to install
+(on a phone, the game starts straight away).
+
+> **Browser vs. desktop.** The online version runs entirely in your browser with the built-in
+> deterministic strategy bots. It uses **no AI models and makes no API calls**. The language-model
+> players (NVIDIA NIM) exist **only in the desktop app** below.
+
+### Download the desktop app — v1.1.0
+
+Prebuilt packages (with the language-model AI players) for six platform/architecture combinations are on the
+[**Releases**](https://github.com/tuklusan/Ludo-Arena/releases/latest) page.
+
+| Platform | x64 | arm64 |
+|---|---|---|
+| Linux | `LudoArena-1.1.0-linux-x64.tar.gz` | `LudoArena-1.1.0-linux-arm64.tar.gz` |
+| Windows | `LudoArena-1.1.0-win-x64.zip` | `LudoArena-1.1.0-win-arm64.zip` |
+| macOS | `LudoArena-1.1.0-osx-x64.tar.gz` | `LudoArena-1.1.0-osx-arm64.tar.gz` |
+
+These are **minimal, framework-dependent** builds — roughly 10–13 MB, because they use the .NET 10
+runtime you already have rather than bundling their own copy. There is no installer: extract the
+archive and run the binary. Nothing is written outside the folder, no registry keys are added and no
+services are installed, so uninstalling is deleting the folder.
+
+**Prerequisite:** the [.NET 10 Desktop Runtime](https://dotnet.microsoft.com/download/dotnet/10.0)
+(`dotnet --list-runtimes` to check).
+
+```bash
+# Linux / macOS
+mkdir -p ludo-arena && tar -xzf LudoArena-1.1.0-linux-x64.tar.gz -C ludo-arena && cd ludo-arena
+./LudoNimArena.App
+```
+
+```powershell
+# Windows
+Expand-Archive LudoArena-1.1.0-win-x64.zip -DestinationPath ludo-arena; cd ludo-arena
+.\LudoNimArena.App.exe
+```
+
+Each archive contains `INSTALL.txt` and `LICENSE`. Verify a download against `SHA256SUMS.txt`:
+
+```bash
+sha256sum -c SHA256SUMS.txt --ignore-missing
+```
+
+Two platform notes. On **macOS**, Gatekeeper quarantines downloaded files — clear it with
+`xattr -dr com.apple.quarantine .` in the extracted folder. On **Windows 11**, Smart App Control (if
+enforcing) refuses to load unsigned binaries and the app will not start, reporting
+`An Application Control policy has blocked this file (0x800711C7)`; this affects any unsigned build.
+Building from source, as below, avoids both.
 
 📖 **Written up as a blog series — start at
 [Part 1: Install ChatDev 2.0 on Linux](https://supratim-sanyal.blogspot.com/2026/07/install-chatdev-ai-agents-linux_01345372577.html).**
 
 A polished, cross-platform desktop **Ludo** game in which **four autonomous AI players** play a
 full match automatically — animated die, tokens gliding cell by cell, captures, blockades, bonus
-rolls and a winner screen. Each player consults a language model (via the OpenAI-compatible
-**NVIDIA NIM** API) to pick its move from an engine-generated list of legal moves, and the whole
-thing falls back to a deterministic local AI the instant the network misbehaves.
+rolls and a winner screen. In the **desktop app** each player consults a language model (via the
+OpenAI-compatible **NVIDIA NIM** API) to pick its move from an engine-generated list of legal
+moves, and the whole thing falls back to a deterministic local AI the instant the network
+misbehaves. The **browser version** plays with that local AI only.
 
 Built in **C# on .NET 10 with Avalonia UI**. One codebase, one build command, a native window on
 Linux, Windows and macOS.
@@ -87,50 +140,6 @@ and turn count.
 - Cancellation-aware retry, throttling and a circuit breaker around the NIM client (handles
   HTTP 429/529, `Retry-After`, long server waits) — the UI never freezes on the network.
 
-## Download — v1.0.0
-
-Prebuilt packages for six platform/architecture combinations are on the
-[**Releases**](https://github.com/tuklusan/Ludo-Arena/releases/latest) page.
-
-| Platform | x64 | arm64 |
-|---|---|---|
-| Linux | `LudoArena-1.0.0-linux-x64.tar.gz` | `LudoArena-1.0.0-linux-arm64.tar.gz` |
-| Windows | `LudoArena-1.0.0-win-x64.zip` | `LudoArena-1.0.0-win-arm64.zip` |
-| macOS | `LudoArena-1.0.0-osx-x64.tar.gz` | `LudoArena-1.0.0-osx-arm64.tar.gz` |
-
-These are **minimal, framework-dependent** builds — roughly 10–13 MB, because they use the .NET 10
-runtime you already have rather than bundling their own copy. There is no installer: extract the
-archive and run the binary. Nothing is written outside the folder, no registry keys are added and no
-services are installed, so uninstalling is deleting the folder.
-
-**Prerequisite:** the [.NET 10 Desktop Runtime](https://dotnet.microsoft.com/download/dotnet/10.0)
-(`dotnet --list-runtimes` to check).
-
-```bash
-# Linux / macOS
-tar -xzf LudoArena-1.0.0-linux-x64.tar.gz -C ludo-arena && cd ludo-arena
-chmod +x LudoNimArena.App        # archives are built on Windows; restore the exec bit
-./LudoNimArena.App
-```
-
-```powershell
-# Windows
-Expand-Archive LudoArena-1.0.0-win-x64.zip -DestinationPath ludo-arena; cd ludo-arena
-.\LudoNimArena.App.exe
-```
-
-Each archive contains `INSTALL.txt` and `LICENSE`. Verify a download against `SHA256SUMS.txt`:
-
-```bash
-sha256sum -c SHA256SUMS.txt --ignore-missing
-```
-
-Two platform notes. On **macOS**, Gatekeeper quarantines downloaded files — clear it with
-`xattr -dr com.apple.quarantine .` in the extracted folder. On **Windows 11**, Smart App Control (if
-enforcing) refuses to load unsigned binaries and the app will not start, reporting
-`An Application Control policy has blocked this file (0x800711C7)`; this affects any unsigned build.
-Building from source, as below, avoids both.
-
 ## Requirements
 
 - **.NET 10 SDK** (`net10.0`). Verify with `dotnet --info`.
@@ -165,22 +174,23 @@ source, config, logs or artifacts. Set at least `NVIDIA_API_KEY` for live decisi
 | Variable | Purpose |
 |---|---|
 | `NVIDIA_API_KEY` | Bearer key for the NIM endpoint (required for live moves). |
-| `NVIDIA_MODEL` | Move-picker model, e.g. a small non-reasoning instruct model. |
-| `NVIDIA_SECONDARY_MODEL` | Optional hosted failover; empty = skip straight to local fallback. |
+| `NVIDIA_MODEL` | Move-picker model. Default `nvidia/nemotron-3.5-lightning-30b-a3b`, called with reasoning off. |
 | `NVIDIA_BASE_URL` | OpenAI-compatible base URL (keep the `/v1` path segment). |
-| `NVIDIA_REQUEST_TIMEOUT_SECONDS` | Per-request timeout. |
+| `NVIDIA_REQUEST_TIMEOUT_SECONDS` | Per-request timeout (default 10). A slow call falls back for that move only. |
 | `NVIDIA_MIN_CALL_INTERVAL_SECONDS` | Request spacing to stay under the tier's rate ceiling. |
 | `NVIDIA_MAX_RETRY_ELAPSED_SECONDS` | Total retry budget before falling back locally. |
 | `NVIDIA_CIRCUIT_BREAKER_SECONDS` | How long the circuit stays open after repeated failures. |
 
 ```bash
 export NVIDIA_API_KEY='...'                                  # your key — never commit it
-export NVIDIA_MODEL='nvidia/nemotron-mini-4b-instruct'       # small, non-reasoning, fast
+export NVIDIA_MODEL='nvidia/nemotron-3.5-lightning-30b-a3b'  # the default; any chat model on the endpoint works
 dotnet run --project src/LudoNimArena.App -c Release
 ```
 
-If the key is missing or a model is unavailable, the game starts normally, warns, and uses the
-local fallback AI. Every move is labelled with its source, so a fully-fallback game is obvious.
+Each decision is a short numbered-menu prompt answered with a single digit; one-option moves make
+no call, and repeated positions are served from a cache. If the key is missing, or the model is
+missing or retired (HTTP 404/410), the game starts normally and uses the local fallback AI; other
+errors fall back for that move and NIM is tried again on the next turn. Every move is labelled with its source, so a fully-fallback game is obvious.
 
 ## Unattended / automated play
 
@@ -233,8 +243,10 @@ global.json                     # pinned .NET 10 SDK (10.0.302, latestPatch roll
 src/LudoNimArena.Core           # rules, board geometry, state, legal moves, die abstractions
 src/LudoNimArena.AI             # NIM client, per-player sessions, DTOs, local fallback AI
 src/LudoNimArena.App            # Avalonia startup, MVVM, board rendering, animation
+src/LudoNimArena.Browser        # WebAssembly (browser) build + responsive web shell; published to GitHub Pages
 tests/                          # Core / AI / App test projects
 scripts/check_license_headers.sh# license-header gate (also enforced in CI)
+scripts/check_desktop_lock.sh   # fails changes to desktop code unless a commit says [desktop-change]
 scripts/  *.py  env_check.sh    # build and environment-inspection harnesses
 docs/REQUIREMENTS_PROMPT.md     # the exact specification the build was driven from
 .github/workflows/              # CI: header gate, runner probe, full-game runs
@@ -260,7 +272,7 @@ platform.
 The **identical source** in this repository — no platform-specific code, no conditional compilation
 — builds and plays a complete game on three operating systems and two CPU architectures.
 
-CI does not merely compile it: on every runner it builds Release, runs all 71 tests, then **launches
+CI does not merely compile it: on every runner it builds Release, runs all 89 tests, then **launches
 the real Avalonia application** and plays one full game from first roll to declared winner, checking
 the transcript and uploading it with board screenshots as artifacts. Linux runners have no display,
 so the real GUI runs inside a virtual X server.

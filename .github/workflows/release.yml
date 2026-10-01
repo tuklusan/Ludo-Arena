@@ -163,11 +163,12 @@ jobs:
           test -n "$idx" || { echo "::error::no index.html was published"; exit 1; }
           if [ "$(dirname "$idx")" != "$site" ]; then cp -a "$(dirname "$idx")"/. "$site"/; fi
           touch "$site/.nojekyll"
-          for f in index.html main.js app.css og-image.png favicon.svg robots.txt sitemap.xml _framework/dotnet.js; do
+          for f in index.html main.js app.css og-image.png twitter-image.png favicon.svg robots.txt sitemap.xml _framework/dotnet.js; do
             test -s "$site/$f" || { echo "::error::missing $f in the published site"; exit 1; }
           done
           grep -q 'property="og:image"' "$site/index.html"
           grep -q 'name="twitter:card"' "$site/index.html"
+          grep -q 'name="twitter:image"' "$site/index.html"
           echo "site=$site" >> "$GITHUB_OUTPUT"
           du -sh "$site"; ls "$site" "$site/_framework" | head -50
 
@@ -189,17 +190,27 @@ jobs:
           name: desktop-packages
           path: dist
 
+      - name: Check out the release notes template
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ env.TAG }}
+          sparse-checkout: .github/release-notes.md
+          path: notes
+
       - name: Create or update the release
         env:
           GH_TOKEN: ${{ github.token }}
           GH_REPO: ${{ github.repository }}
         run: |
+          VERSION="${TAG#v}"
+          sed -e "s/@VERSION@/$VERSION/g" -e "s/@TAG@/$TAG/g" notes/.github/release-notes.md > release-notes.md
           if gh release view "$TAG" >/dev/null 2>&1; then
             gh release upload "$TAG" dist/* --clobber
+            gh release edit "$TAG" --notes-file release-notes.md --title "Ludo AI Arena $VERSION"
           else
             pre=""; case "$TAG" in *-*) pre="--prerelease" ;; esac   # v1.1.0-beta-1 is not "Latest"
             gh release create "$TAG" dist/* --verify-tag --generate-notes $pre \
-              --title "Ludo AI Arena ${TAG#v}"
+              --notes-file release-notes.md --title "Ludo AI Arena $VERSION"
           fi
 
   pages:
