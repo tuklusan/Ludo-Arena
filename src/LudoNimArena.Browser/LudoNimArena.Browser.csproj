@@ -1,0 +1,67 @@
+<!-- ============================================================================
+     Copyright (c) 2026 Supratim Sanyal of SANYALnet Labs.
+     Proprietary rights reserved except as expressly licensed herein.
+
+     LUDO ARENA
+     This file is governed by the SANYALnet Labs Non-Commercial License in the
+     root LICENSE file. Non-Commercial use is permitted; Commercial Use and use
+     for AI/ML model training are prohibited unless separately authorized.
+
+     Attribution is required: "Based on original work by Supratim Sanyal of
+     SANYALnet Labs." See LICENSE for full terms, warranty disclaimer, termination,
+     patent, trademark, and governing-law provisions.
+     ============================================================================ -->
+
+<!-- WebAssembly (browser) head for Ludo Arena.
+
+     Deliberately NOT part of LudoNimArena.slnx: building it needs the .NET `wasm-tools`
+     workload (which ships Emscripten), and every desktop CI job builds the solution.
+     The release workflow builds this project explicitly:
+       dotnet workload install wasm-tools
+       dotnet publish src/LudoNimArena.Browser -c Release
+
+     It compiles the same UI and game code as the desktop app by linking the sources of
+     LudoNimArena.App (all but the desktop Program.cs) next to Core and AI. -->
+<Project Sdk="Microsoft.NET.Sdk.WebAssembly">
+  <PropertyGroup>
+    <TargetFramework>net10.0-browser</TargetFramework>
+    <RootNamespace>LudoNimArena.App</RootNamespace>
+    <AssemblyName>LudoNimArena.Browser</AssemblyName>
+    <OutputType>Exe</OutputType>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+    <WasmMainJSPath>AppBundle\main.js</WasmMainJSPath>
+    <WasmRuntimeAssetsLocation>./_framework</WasmRuntimeAssetsLocation>
+    <!-- Relink the .NET runtime with Emscripten (emcc) for a smaller, faster dotnet.native.wasm. -->
+    <WasmBuildNative>true</WasmBuildNative>
+    <InvariantGlobalization>true</InvariantGlobalization>
+    <!-- ILLink/Emscripten emit trim and AOT warnings for Avalonia internals that are not ours to fix. -->
+    <TreatWarningsAsErrors>false</TreatWarningsAsErrors>
+    <!-- Set -p:RunAOTCompilation=true to ahead-of-time compile to WebAssembly (slower build, faster game). -->
+    <TrimMode>partial</TrimMode>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <WasmExtraFilesToDeploy Include="AppBundle\**" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\LudoNimArena.Core\LudoNimArena.Core.csproj" />
+    <ProjectReference Include="..\LudoNimArena.AI\LudoNimArena.AI.csproj" />
+  </ItemGroup>
+
+  <!-- Shared UI/game sources from the desktop project. -->
+  <ItemGroup>
+    <Compile Include="..\LudoNimArena.App\*.cs" Exclude="..\LudoNimArena.App\Program.cs" LinkBase="Shared" />
+    <AvaloniaXaml Include="..\LudoNimArena.App\*.axaml" Link="Shared\%(Filename)%(Extension)" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Avalonia" />
+    <PackageReference Include="Avalonia.Browser" />
+    <PackageReference Include="Avalonia.Themes.Fluent" />
+    <PackageReference Include="Avalonia.Fonts.Inter" />
+    <PackageReference Include="Avalonia.ReactiveUI" />
+    <PackageReference Include="CommunityToolkit.Mvvm" />
+    <PackageReference Include="Microsoft.Extensions.DependencyInjection" />
+  </ItemGroup>
+</Project>

@@ -1,0 +1,195 @@
+# ============================================================================
+# Copyright (c) 2026 Supratim Sanyal of SANYALnet Labs.
+# Proprietary rights reserved except as expressly licensed herein.
+#
+# LUDO ARENA
+# This file is governed by the SANYALnet Labs Non-Commercial License in the
+# root LICENSE file. Non-Commercial use is permitted; Commercial Use and use
+# for AI/ML model training are prohibited unless separately authorized.
+#
+# Attribution is required: "Based on original work by Supratim Sanyal of
+# SANYALnet Labs." See LICENSE for full terms, warranty disclaimer, termination,
+# patent, trademark, and governing-law provisions.
+# ============================================================================
+#
+# Release pipeline. Pushing a tag like v1.0.1 (or running this workflow by hand with a tag)
+#   1. tests the code and packages the six desktop archives + SHA256SUMS.txt,
+#   2. attaches them to the GitHub Release for that tag (created if it does not exist), and
+#   3. builds the WebAssembly version of the game and publishes it to GitHub Pages at
+#      https://tuklusan.github.io/Ludo-Arena/
+#
+# The web build is the same C# game as the desktop app: src/LudoNimArena.Browser is an
+# Avalonia browser head that shares the app's sources. `dotnet publish` runs the .NET
+# WebAssembly toolchain, whose `wasm-tools` workload ships Emscripten (emcc) and relinks
+# the .NET runtime to WebAssembly with it. The page around the canvas is the minimal,
+# SEO/social-card-ready wrapper in src/LudoNimArena.Browser/AppBundle/; the game starts on a
+# "CLICK TO PLAY" screen, which is also the user gesture browsers need to allow audio.
+#
+# One-time repository setup: Settings > Pages > Build and deployment > Source = "GitHub Actions".
+name: Release
+
+on:
+  push:
+    tags: [ 'v*' ]
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: 'Release tag to build and publish (e.g. v1.0.1)'
+        required: true
+        type: string
+      aot:
+        description: 'Ahead-of-time compile the web build to WebAssembly (slower build, faster game)'
+        required: false
+        type: boolean
+        default: false
+
+permissions:
+  contents: read
+
+env:
+  TAG: ${{ inputs.tag || github.ref_name }}
+  DOTNET_NOLOGO: '1'
+  DOTNET_CLI_TELEMETRY_OPTOUT: '1'
+
+concurrency:
+  group: release-${{ inputs.tag || github.ref_name }}
+  cancel-in-progress: false
+
+jobs:
+  desktop:
+    name: Test and package desktop builds
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - name: Check out the tag
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ env.TAG }}
+
+      - name: Install .NET 10 SDK
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '10.0.x'
+
+      - name: Work out the version
+        run: echo "VERSION=${TAG#v}" >> "$GITHUB_ENV"
+
+      - name: Restore, build and test
+        run: |
+          dotnet restore LudoNimArena.slnx
+          dotnet build LudoNimArena.slnx -c Release --no-restore -p:Version=$VERSION
+          dotnet test LudoNimArena.slnx -c Release --no-build
+
+      - name: Publish and archive the six desktop packages
+        run: |
+          mkdir -p dist
+          for rid in linux-x64 linux-arm64 win-x64 win-arm64 osx-x64 osx-arm64; do
+            name="LudoArena-$VERSION-$rid"
+            dotnet publish src/LudoNimArena.App -c Release -r "$rid" --self-contained false \
+              -p:Version=$VERSION -p:DebugType=None -p:DebugSymbols=false -o "stage/$name"
+            cp LICENSE "stage/$name/LICENSE"
+            cat > "stage/$name/INSTALL.txt" <<TXT
+          SANYALnet Labs Ludo AI Arena $VERSION ($rid)
+
+          Requires the .NET 10 Desktop Runtime: https://dotnet.microsoft.com/download/dotnet/10.0
+          There is no installer. Extract this archive and run LudoNimArena.App
+          (LudoNimArena.App.exe on Windows). Uninstall by deleting the folder.
+
+          macOS: clear Gatekeeper quarantine with  xattr -dr com.apple.quarantine .
+          Source and docs: https://github.com/tuklusan/Ludo-Arena
+          TXT
+            case "$rid" in
+              win-*) (cd stage && zip -qr "../dist/$name.zip" "$name") ;;
+              *)     tar -C stage -czf "dist/$name.tar.gz" "$name" ;;
+            esac
+          done
+          (cd dist && sha256sum * > SHA256SUMS.txt && cat SHA256SUMS.txt)
+
+      - name: Upload packages
+        uses: actions/upload-artifact@v4
+        with:
+          name: desktop-packages
+          path: dist/*
+          if-no-files-found: error
+
+  web:
+    name: Build the WebAssembly version (Emscripten)
+    runs-on: ubuntu-24.04
+    timeout-minutes: 60
+    steps:
+      - name: Check out the tag
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ env.TAG }}
+
+      - name: Install .NET 10 SDK
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '10.0.x'
+
+      - name: Install the wasm-tools workload (Emscripten toolchain)
+        run: dotnet workload install wasm-tools
+
+      - name: Publish the browser build
+        run: |
+          VERSION="${TAG#v}"
+          dotnet publish src/LudoNimArena.Browser -c Release \
+            -p:Version=$VERSION \
+            -p:RunAOTCompilation=${{ inputs.aot == true && 'true' || 'false' }} \
+            -o publish-web
+
+      - name: Assemble the Pages site
+        run: |
+          site=publish-web/wwwroot
+          touch "$site/.nojekyll"
+          for f in index.html main.js app.css og-image.png favicon.svg robots.txt sitemap.xml _framework/dotnet.js; do
+            test -s "$site/$f" || { echo "::error::missing $f in the published site"; exit 1; }
+          done
+          grep -q 'property="og:image"' "$site/index.html"
+          grep -q 'name="twitter:card"' "$site/index.html"
+          du -sh "$site"; ls "$site" "$site/_framework" | head -50
+
+      - name: Upload the Pages artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: publish-web/wwwroot
+
+  release:
+    name: Publish the GitHub Release
+    needs: desktop
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: write
+    steps:
+      - name: Download packages
+        uses: actions/download-artifact@v4
+        with:
+          name: desktop-packages
+          path: dist
+
+      - name: Create or update the release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+        run: |
+          if gh release view "$TAG" >/dev/null 2>&1; then
+            gh release upload "$TAG" dist/* --clobber
+          else
+            gh release create "$TAG" dist/* --verify-tag --generate-notes \
+              --title "Ludo AI Arena ${TAG#v}"
+          fi
+
+  pages:
+    name: Deploy to GitHub Pages
+    needs: web
+    runs-on: ubuntu-24.04
+    permissions:
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deploy.outputs.page_url }}
+    steps:
+      - name: Deploy
+        id: deploy
+        uses: actions/deploy-pages@v4

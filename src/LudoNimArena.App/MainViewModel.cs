@@ -650,6 +650,12 @@ public partial class MainViewModel : ObservableObject
     {
         _gameCts?.Cancel();
         CleanupSessions();
+        if (OperatingSystem.IsBrowser())
+        {
+            // A browser tab cannot exit its own process; return to the setup screen.
+            NewGame();
+            return;
+        }
         Environment.Exit(0);
     }
 

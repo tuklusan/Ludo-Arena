@@ -31,6 +31,11 @@ public partial class App : Application
         {
             desktop.MainWindow = new MainWindow();
         }
+        else if (ApplicationLifetime is ISingleViewApplicationLifetime singleView)
+        {
+            // WebAssembly (browser) build: no window, one view filling the page.
+            singleView.MainView = new MainView { DataContext = new MainViewModel() };
+        }
 
         base.OnFrameworkInitializationCompleted();
     }

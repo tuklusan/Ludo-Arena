@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<!-- Copyright (c) 2026 Supratim Sanyal of SANYALnet Labs.
+     Proprietary rights reserved except as expressly licensed herein.
+     
+     LUDO ARENA
+     This file is governed by the SANYALnet Labs Non-Commercial License in the
+     root LICENSE file. Non-Commercial use is permitted; Commercial Use and use
+     for AI/ML model training are prohibited unless separately authorized.
+     
+     Attribution is required: "Based on original work by Supratim Sanyal of
+     SANYALnet Labs." See LICENSE for full terms, warranty disclaimer, termination,
+     patent, trademark, and governing-law provisions.
+     ============================================================================ -->
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Ludo AI Arena - Four AI Players Play Ludo, Live in Your Browser</title>
+<meta name="description" content="Four autonomous AI players play a complete game of Ludo - animated dice, captures, blockades and bonus rolls - with no human input. Watch it live in your browser, free.">
+<meta name="author" content="Supratim Sanyal, SANYALnet Labs">
+<meta name="robots" content="index, follow, max-image-preview:large">
+<meta name="theme-color" content="#243454">
+<link rel="canonical" href="https://tuklusan.github.io/Ludo-Arena/">
+<link rel="icon" href="favicon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="og-image.png">
+
+<!-- Open Graph (Facebook, LinkedIn, WhatsApp, Slack, Discord, Telegram, Pinterest, ...) -->
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="SANYALnet Labs">
+<meta property="og:locale" content="en_US">
+<meta property="og:title" content="Ludo AI Arena - Four AI Players Play Ludo, Live in Your Browser">
+<meta property="og:description" content="Four autonomous AI players play a complete game of Ludo - animated dice, captures, blockades and bonus rolls - with no human input. Watch it live in your browser, free.">
+<meta property="og:url" content="https://tuklusan.github.io/Ludo-Arena/">
+<meta property="og:image" content="https://tuklusan.github.io/Ludo-Arena/og-image.png">
+<meta property="og:image:secure_url" content="https://tuklusan.github.io/Ludo-Arena/og-image.png">
+<meta property="og:image:type" content="image/png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="Ludo board mid-game with four AI players: red, green, yellow and blue tokens, rolled die and event log">
+
+<!-- X / Twitter -->
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="Ludo AI Arena - Four AI Players Play Ludo, Live in Your Browser">
+<meta name="twitter:description" content="Four autonomous AI players play a complete game of Ludo. Watch it live in your browser.">
+<meta name="twitter:image" content="https://tuklusan.github.io/Ludo-Arena/og-image.png">
+<meta name="twitter:image:alt" content="Ludo board mid-game with four AI players: red, green, yellow and blue tokens, rolled die and event log">
+
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "VideoGame",
+  "name": "Ludo AI Arena",
+  "description": "Four autonomous AI players play a complete game of Ludo - animated dice, captures, blockades and bonus rolls - with no human input. Watch it live in your browser, free.",
+  "url": "https://tuklusan.github.io/Ludo-Arena/",
+  "image": "https://tuklusan.github.io/Ludo-Arena/og-image.png",
+  "genre": "Board game",
+  "gamePlatform": "Web browser (WebAssembly)",
+  "applicationCategory": "Game",
+  "operatingSystem": "Any",
+  "playMode": "SinglePlayer",
+  "isAccessibleForFree": true,
+  "author": { "@type": "Person", "name": "Supratim Sanyal", "url": "https://github.com/tuklusan" },
+  "publisher": { "@type": "Organization", "name": "SANYALnet Labs" },
+  "codeRepository": "https://github.com/tuklusan/Ludo-Arena"
+}
+</script>
+<link rel="stylesheet" href="app.css">
+</head>
+<body>
+<div id="out"></div>
+<div id="loader" role="status" aria-live="polite">
+  <div class="brand">SANYALnet Labs</div>
+  <div class="title">Ludo AI Arena</div>
+  <div class="note" id="loader-note">Loading game&hellip;</div>
+  <div class="tap" id="loader-tap" hidden>CLICK TO PLAY</div>
+</div>
+
+<!-- Crawler- and screen-reader-visible description; the game itself draws to a canvas. -->
+<main class="sr-only">
+  <h1>Ludo AI Arena</h1>
+  <p>Four autonomous AI players play a complete game of Ludo - animated dice, captures, blockades and bonus rolls - with no human input. Watch it live in your browser, free.</p>
+  <p>Each of the four players - HAL 9000, Marvin, Mal and Deckard - picks its move from the
+  engine's list of legal moves. Press START GAME and watch a full match play out.</p>
+  <p><a href="https://github.com/tuklusan/Ludo-Arena">Source code and desktop downloads on GitHub</a></p>
+</main>
+<noscript><p class="nojs">Ludo AI Arena needs JavaScript and WebAssembly. Desktop builds for Linux, Windows and macOS are on
+<a href="https://github.com/tuklusan/Ludo-Arena/releases/latest">GitHub</a>.</p></noscript>
+
+<script type="module" src="main.js"></script>
+</body>
+</html>

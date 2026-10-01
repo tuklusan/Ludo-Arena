@@ -1,0 +1,29 @@
+/* Copyright (c) 2026 Supratim Sanyal of SANYALnet Labs.
+   Proprietary rights reserved except as expressly licensed herein.
+   
+   LUDO ARENA
+   This file is governed by the SANYALnet Labs Non-Commercial License in the
+   root LICENSE file. Non-Commercial use is permitted; Commercial Use and use
+   for AI/ML model training are prohibited unless separately authorized.
+   
+   Attribution is required: "Based on original work by Supratim Sanyal of
+   SANYALnet Labs." See LICENSE for full terms, warranty disclaimer, termination,
+   patent, trademark, and governing-law provisions.
+   ============================================================================ */
+
+html, body { margin: 0; padding: 0; width: 100%; height: 100%; background: #243454; overflow: hidden; }
+#out { position: fixed; inset: 0; width: 100vw; height: 100vh; }
+#loader { position: fixed; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center;
+          gap: 6px; color: #dce4f5; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+          background: #243454; z-index: 10; transition: opacity .3s; }
+#loader.ready { cursor: pointer; background: rgba(36, 52, 84, .96); }
+#loader .tap { font-size: 24px; font-weight: 700; letter-spacing: 1px; margin-top: 14px; }
+#loader[hidden], #loader .tap[hidden], #loader .note[hidden] { display: none; }
+#loader.done { opacity: 0; pointer-events: none; }
+#loader .brand { font-size: 16px; color: #96afe6; }
+#loader .title { font-size: 34px; font-weight: 700; color: #fff; }
+#loader .note { font-size: 14px; margin-top: 10px; }
+.sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden;
+           clip: rect(0, 0, 0, 0); white-space: nowrap; border: 0; }
+.nojs { position: fixed; inset: auto 0 20% 0; text-align: center; color: #dce4f5; font-family: sans-serif; z-index: 11; }
+.nojs a { color: #96afe6; }
