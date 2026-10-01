@@ -175,7 +175,8 @@ jobs:
           if gh release view "$TAG" >/dev/null 2>&1; then
             gh release upload "$TAG" dist/* --clobber
           else
-            gh release create "$TAG" dist/* --verify-tag --generate-notes \
+            pre=""; case "$TAG" in *-*) pre="--prerelease" ;; esac   # v1.1.0-beta-1 is not "Latest"
+            gh release create "$TAG" dist/* --verify-tag --generate-notes $pre \
               --title "Ludo AI Arena ${TAG#v}"
           fi
 
