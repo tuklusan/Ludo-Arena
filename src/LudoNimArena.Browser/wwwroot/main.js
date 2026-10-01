@@ -57,7 +57,7 @@ try {
         if (document.querySelector('#out canvas')) { dismissLoader(); obs.disconnect(); }
     }).observe(document.getElementById('out'), { childList: true, subtree: true });
 
-    await runtime.runMainAndExit(config.mainAssemblyName, [window.location.search]);
+    await runtime.runMain(config.mainAssemblyName, [window.location.search]);
 } catch (err) {
     console.error(err);
     tap.hidden = true;

@@ -37,6 +37,11 @@ on:
         description: 'Release tag to build and publish (e.g. v1.0.1)'
         required: true
         type: string
+      source_ref:
+        description: 'Optional: git ref to build instead of the tag (e.g. main, to test web-only changes)'
+        required: false
+        type: string
+        default: ''
       web_only:
         description: 'Build and deploy only the web version (skip the desktop packages and the GitHub Release)'
         required: false
@@ -70,7 +75,7 @@ jobs:
       - name: Check out the tag
         uses: actions/checkout@v4
         with:
-          ref: ${{ env.TAG }}
+          ref: ${{ inputs.source_ref || env.TAG }}
 
       - name: Install .NET 10 SDK
         uses: actions/setup-dotnet@v4
@@ -126,7 +131,7 @@ jobs:
       - name: Check out the tag
         uses: actions/checkout@v4
         with:
-          ref: ${{ env.TAG }}
+          ref: ${{ inputs.source_ref || env.TAG }}
 
       - name: Install .NET 10 SDK
         uses: actions/setup-dotnet@v4
