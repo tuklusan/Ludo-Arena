@@ -13,16 +13,16 @@
 > deterministic strategy bots. It uses **no AI models and makes no API calls**. The language-model
 > players (NVIDIA NIM) exist **only in the desktop app** below.
 
-### Download the desktop app — v1.2.0
+### Download the desktop app — v1.2.1
 
 Prebuilt packages (with the language-model AI players) for six platform/architecture combinations are on the
 [**Releases**](https://github.com/tuklusan/Ludo-Arena/releases/latest) page.
 
 | Platform | x64 | arm64 |
 |---|---|---|
-| Linux | `LudoArena-1.2.0-linux-x64.tar.gz` | `LudoArena-1.2.0-linux-arm64.tar.gz` |
-| Windows | `LudoArena-1.2.0-win-x64.zip` | `LudoArena-1.2.0-win-arm64.zip` |
-| macOS | `LudoArena-1.2.0-osx-x64.tar.gz` | `LudoArena-1.2.0-osx-arm64.tar.gz` |
+| Linux | `LudoArena-1.2.1-linux-x64.tar.gz` | `LudoArena-1.2.1-linux-arm64.tar.gz` |
+| Windows | `LudoArena-1.2.1-win-x64.zip` | `LudoArena-1.2.1-win-arm64.zip` |
+| macOS | `LudoArena-1.2.1-osx-x64.tar.gz` | `LudoArena-1.2.1-osx-arm64.tar.gz` |
 
 These are **minimal, framework-dependent** builds — roughly 10–13 MB, because they use the .NET 10
 runtime you already have rather than bundling their own copy. There is no installer: extract the
@@ -34,13 +34,13 @@ services are installed, so uninstalling is deleting the folder.
 
 ```bash
 # Linux / macOS
-mkdir -p ludo-arena && tar -xzf LudoArena-1.2.0-linux-x64.tar.gz -C ludo-arena && cd ludo-arena
+mkdir -p ludo-arena && tar -xzf LudoArena-1.2.1-linux-x64.tar.gz -C ludo-arena && cd ludo-arena
 ./LudoNimArena.App
 ```
 
 ```powershell
 # Windows
-Expand-Archive LudoArena-1.2.0-win-x64.zip -DestinationPath ludo-arena; cd ludo-arena
+Expand-Archive LudoArena-1.2.1-win-x64.zip -DestinationPath ludo-arena; cd ludo-arena
 .\LudoNimArena.App.exe
 ```
 
@@ -178,7 +178,7 @@ source, config, logs or artifacts. Set at least `NVIDIA_API_KEY` for live decisi
 | `NVIDIA_API_KEY` | Bearer key for the NIM endpoint (required for live moves). |
 | `NVIDIA_MODEL` | Move-picker model. Default `nvidia/nemotron-3.5-lightning-30b-a3b`, called with reasoning off. |
 | `NVIDIA_BASE_URL` | OpenAI-compatible base URL (keep the `/v1` path segment). |
-| `NVIDIA_REQUEST_TIMEOUT_SECONDS` | Per-request timeout (default 10). A slow call falls back for that move only. |
+| `NVIDIA_REQUEST_TIMEOUT_SECONDS` | Per-request timeout (default 60). A slow call falls back for that move only. |
 | `NVIDIA_MIN_CALL_INTERVAL_SECONDS` | Request spacing to stay under the tier's rate ceiling. |
 | `NVIDIA_MAX_RETRY_ELAPSED_SECONDS` | Total retry budget before falling back locally. |
 | `NVIDIA_CIRCUIT_BREAKER_SECONDS` | How long the circuit stays open after repeated failures. |

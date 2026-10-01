@@ -20,7 +20,7 @@ public class NimSettings
     public string ApiKey { get; set; } = "";
     public string Model { get; set; } = "nvidia/nemotron-3.5-lightning-30b-a3b";
     public string BaseUrl { get; set; } = "https://integrate.api.nvidia.com/v1";
-    public int RequestTimeoutSeconds { get; set; } = 10;
+    public int RequestTimeoutSeconds { get; set; } = 60;
     public int MaxRetryDelaySeconds { get; set; } = 1800;
     public int MaxRetryElapsedSeconds { get; set; } = 3600;
     public int MinCallIntervalSeconds { get; set; } = 5;

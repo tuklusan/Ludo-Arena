@@ -122,7 +122,7 @@ public class NimTraceTests
 
         await Ask(session, lines);
 
-        lines.Last().Should().Contain("no reply in 10 s").And.Contain("local AI for this move");
+        lines.Last().Should().Contain("no reply in 60 s").And.Contain("local AI for this move");
     }
 
     [Fact]

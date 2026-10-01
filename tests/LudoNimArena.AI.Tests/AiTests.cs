@@ -104,7 +104,7 @@ public class NimSettingsTests
         var settings = new NimSettings();
         settings.Model.Should().Be("nvidia/nemotron-3.5-lightning-30b-a3b");
         settings.BaseUrl.Should().Be("https://integrate.api.nvidia.com/v1");
-        settings.RequestTimeoutSeconds.Should().Be(10);
+        settings.RequestTimeoutSeconds.Should().Be(60);
         settings.MaxRetryDelaySeconds.Should().Be(1800);
         settings.MaxRetryElapsedSeconds.Should().Be(3600);
         settings.MinCallIntervalSeconds.Should().Be(5);
