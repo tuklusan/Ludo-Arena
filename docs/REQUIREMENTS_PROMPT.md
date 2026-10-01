@@ -1,3 +1,8 @@
+> **Historical document.** This is the exact specification ChatDev was driven from, kept unchanged
+> below for the record. The shipped game has since evolved: the default NIM model is now
+> `nvidia/nemotron-3.5-lightning-30b-a3b` (the `nemotron-mini-4b-instruct` named below was retired by
+> NVIDIA), and there is a browser version. See the README for current behaviour.
+
 CHATDEV TASK PROMPT — PROJECT: SANYALnet Labs Ludo AI Arena
 REVISION: 3   SCOPE: Four autonomous AI players only
 

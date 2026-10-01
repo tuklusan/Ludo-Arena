@@ -208,7 +208,7 @@ jobs:
             gh release upload "$TAG" dist/* --clobber
             gh release edit "$TAG" --notes-file release-notes.md --title "Ludo AI Arena $VERSION"
           else
-            pre=""; case "$TAG" in *-*) pre="--prerelease" ;; esac   # v1.1.0-beta-1 is not "Latest"
+            pre=""; case "$TAG" in *-*) pre="--prerelease" ;; esac   # e.g. v1.3.0-beta-1 is not "Latest"
             gh release create "$TAG" dist/* --verify-tag --generate-notes $pre \
               --notes-file release-notes.md --title "Ludo AI Arena $VERSION"
           fi

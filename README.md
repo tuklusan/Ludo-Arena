@@ -160,6 +160,23 @@ dotnet run --project src/LudoNimArena.App -c Release
 
 On Windows use `src\LudoNimArena.App`. The setup screen opens; press **START GAME**.
 
+### Web version (GitHub Pages)
+
+The browser build is a separate project, [`src/LudoNimArena.Browser`](src/LudoNimArena.Browser)
+(Avalonia for WebAssembly, built with the .NET `wasm-tools` workload, which ships Emscripten). It runs
+the same game with a responsive web shell and the local strategy bots only. It is deliberately **not**
+in `LudoNimArena.slnx`, so the desktop build and tests never need the workload. To build it yourself:
+
+```bash
+dotnet workload install wasm-tools
+dotnet publish src/LudoNimArena.Browser -c Release -o publish-web   # site is in publish-web/wwwroot
+```
+
+Releases (desktop archives, the GitHub Release page and the Pages deploy) are produced only by the
+manually-run **Release** workflow (`gh workflow run release.yml -f tag=vX.Y.Z`, tag must exist).
+A **Desktop Lock** check fails any change to the desktop code unless a commit message contains
+`[desktop-change]`.
+
 On a minimal Linux desktop with no GPU driver, force software rendering so Avalonia's Skia backend
 paints reliably:
 
@@ -251,7 +268,7 @@ scripts/check_license_headers.sh# license-header gate (also enforced in CI)
 scripts/check_desktop_lock.sh   # fails changes to desktop code unless a commit says [desktop-change]
 scripts/  *.py  env_check.sh    # build and environment-inspection harnesses
 docs/REQUIREMENTS_PROMPT.md     # the exact specification the build was driven from
-.github/workflows/              # CI: header gate, runner probe, full-game runs
+.github/workflows/              # CI: header gate, desktop lock, runner probe, full-game runs, release
 LICENSE                         # SANYALnet Labs non-commercial license
 ```
 
@@ -265,16 +282,17 @@ missing. It runs on every push and pull request.
 dotnet test LudoNimArena.slnx -c Release
 ```
 
-**71 tests** — Core 52, AI 11, App 8. The Core tests include deterministic four-player fallback
-simulations that check board invariants after every move; the App tests use Avalonia's headless
-platform.
+**108 tests** — Core 52, AI 37, App 19. The Core tests include deterministic four-player fallback
+simulations that check board invariants after every move; the AI tests cover the NIM prompt, request
+parameters, decision cache, retry and failure handling, and the event-log trace lines; the App tests
+use Avalonia's headless platform and cover the player-name rules.
 
 ## Cross-platform verification
 
 The **identical source** in this repository — no platform-specific code, no conditional compilation
 — builds and plays a complete game on three operating systems and two CPU architectures.
 
-CI does not merely compile it: on every runner it builds Release, runs all 89 tests, then **launches
+CI does not merely compile it: on every runner it builds Release, runs all 108 tests, then **launches
 the real Avalonia application** and plays one full game from first roll to declared winner, checking
 the transcript and uploading it with board screenshots as artifacts. Linux runners have no display,
 so the real GUI runs inside a virtual X server.
