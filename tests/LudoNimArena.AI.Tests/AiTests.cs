@@ -102,9 +102,9 @@ public class NimSettingsTests
     public void Defaults_AreCorrect()
     {
         var settings = new NimSettings();
-        settings.Model.Should().Be("nvidia/llama-3.3-nemotron-super-49b-v1.5");
+        settings.Model.Should().Be("nvidia/nemotron-3.5-lightning-30b-a3b");
         settings.BaseUrl.Should().Be("https://integrate.api.nvidia.com/v1");
-        settings.RequestTimeoutSeconds.Should().Be(90);
+        settings.RequestTimeoutSeconds.Should().Be(10);
         settings.MaxRetryDelaySeconds.Should().Be(1800);
         settings.MaxRetryElapsedSeconds.Should().Be(3600);
         settings.MinCallIntervalSeconds.Should().Be(5);

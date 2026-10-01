@@ -135,9 +135,9 @@ public partial class MainViewModel : ObservableObject
         return new NimSettings
         {
             ApiKey = Environment.GetEnvironmentVariable("NVIDIA_API_KEY") ?? "",
-            Model = Environment.GetEnvironmentVariable("NVIDIA_MODEL") ?? "nvidia/llama-3.3-nemotron-super-49b-v1.5",
+            Model = Environment.GetEnvironmentVariable("NVIDIA_MODEL") ?? "nvidia/nemotron-3.5-lightning-30b-a3b",
             BaseUrl = Environment.GetEnvironmentVariable("NVIDIA_BASE_URL") ?? "https://integrate.api.nvidia.com/v1",
-            RequestTimeoutSeconds = int.TryParse(Environment.GetEnvironmentVariable("NVIDIA_REQUEST_TIMEOUT_SECONDS"), out var t) ? t : 90,
+            RequestTimeoutSeconds = int.TryParse(Environment.GetEnvironmentVariable("NVIDIA_REQUEST_TIMEOUT_SECONDS"), out var t) ? t : 10,
             MaxRetryDelaySeconds = int.TryParse(Environment.GetEnvironmentVariable("NVIDIA_MAX_RETRY_DELAY_SECONDS"), out var mrd) ? mrd : 1800,
             MaxRetryElapsedSeconds = int.TryParse(Environment.GetEnvironmentVariable("NVIDIA_MAX_RETRY_ELAPSED_SECONDS"), out var mre) ? mre : 3600,
             MinCallIntervalSeconds = int.TryParse(Environment.GetEnvironmentVariable("NVIDIA_MIN_CALL_INTERVAL_SECONDS"), out var mci) ? mci : 5,

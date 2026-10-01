@@ -92,19 +92,27 @@ public class AiPlayerSession : IDisposable
             return (fallback.MoveId, "Local fallback AI (circuit open)", true);
         }
 
-        // Build DTO
-        var dto = BuildGameStateDto(state, legalMoves, dieResult, requestId);
+        // A forced move needs no model call.
+        if (legalMoves.Count == 1)
+            return (legalMoves[0].MoveId, "Only legal move", false);
 
-        // Try NIM request with retries
-        var totalStarted = DateTimeOffset.UtcNow;
-        var totalBudget = TimeSpan.FromSeconds(_settings.MaxRetryElapsedSeconds);
-        int attempt = 0;
-        TimeSpan localBackoff = TimeSpan.FromSeconds(15);
+        // Compact numbered-menu prompt (see NimPrompt). Identical situations are answered from the cache.
+        var userPrompt = NimPrompt.BuildUser(state, _color, _strategyHint, legalMoves, dieResult);
+        var cacheKey = userPrompt;
+        if (TryGetCached(cacheKey, out var cachedMoveId) && legalMoves.Any(m => m.MoveId == cachedMoveId))
+        {
+            _logger?.LogDebug("{Color}: decision cache hit", _color);
+            return (cachedMoveId, "NIM (cached decision)", false);
+        }
 
-        while (DateTimeOffset.UtcNow - totalStarted < totalBudget)
+        // One request per decision, plus one retry that restates the answer format after an unusable
+        // reply. A transient failure (timeout, network error, 429/5xx) never stalls the game: this move
+        // falls back to the local AI and the next turn tries NIM again.
+        bool transientFailure = false;
+
+        for (int attempt = 1; attempt <= 2; attempt++)
         {
             cancellationToken.ThrowIfCancellationRequested();
-            attempt++;
 
             // Respect minimum call interval
             await WaitForCallIntervalAsync(cancellationToken);
@@ -117,7 +125,7 @@ public class AiPlayerSession : IDisposable
                 {
                     _lastCallTime = DateTimeOffset.UtcNow;
 
-                    var response = await SendNimRequestAsync(dto, cancellationToken);
+                    var response = await SendNimRequestAsync(userPrompt, cancellationToken);
 
                     // Success - close circuit if it was half-open
                     _failureCount = 0;
@@ -127,13 +135,14 @@ public class AiPlayerSession : IDisposable
                     if (parsed != null)
                     {
                         _logger?.LogInformation("{Color}: NIM returned {MoveId}", _color, parsed.Value.MoveId);
+                        StoreCached(cacheKey, parsed.Value.MoveId);
                         return (parsed.Value.MoveId, SafeReason(parsed.Value.Reason), false);
                     }
 
-                    // Parse failed - try repair request
+                    // Unusable reply - one retry that restates the answer format
                     if (attempt == 1)
                     {
-                        dto = BuildRepairDto(dto, legalMoves);
+                        userPrompt += NimPrompt.RepairSuffix(legalMoves.Count);
                         continue;
                     }
 
@@ -155,7 +164,9 @@ public class AiPlayerSession : IDisposable
 
                 if (IsPermanentFailure(status))
                 {
-                    if (status is HttpStatusCode.Unauthorized or HttpStatusCode.PaymentRequired or HttpStatusCode.Forbidden)
+                    // 401/402/403 (key or account) and 404/410 (model missing or retired): stop calling.
+                    if (status is HttpStatusCode.Unauthorized or HttpStatusCode.PaymentRequired
+                        or HttpStatusCode.Forbidden or HttpStatusCode.NotFound or HttpStatusCode.Gone)
                     {
                         _permanentlyDisabled = true;
                         _logger?.LogWarning("{Color}: NIM permanently disabled after {Status}", _color, status);
@@ -163,25 +174,27 @@ public class AiPlayerSession : IDisposable
                     break;
                 }
 
-                // Transient - retry
-                var retryAfter = GetRetryAfter(ex);
-                localBackoff = await WaitForRetryAsync(retryAfter, localBackoff, attempt, totalStarted, totalBudget, cancellationToken);
-                _logger?.LogDebug("{Color}: Retry attempt {Attempt} after {Status}", _color, attempt, status);
+                // Anything else (429, 5xx, ...): fall back for this move, retry NIM next turn.
+                transientFailure = true;
+                _logger?.LogInformation("{Color}: NIM {Status}; local fallback for this move", _color, status);
+                break;
             }
             catch (TaskCanceledException) when (!cancellationToken.IsCancellationRequested)
             {
-                // Timeout - treat as transient
-                localBackoff = await WaitForRetryAsync(null, localBackoff, attempt, totalStarted, totalBudget, cancellationToken);
+                // Timed out (RequestTimeoutSeconds)
+                transientFailure = true;
+                break;
             }
             catch (HttpRequestException)
             {
-                // Connection error - transient
-                localBackoff = await WaitForRetryAsync(null, localBackoff, attempt, totalStarted, totalBudget, cancellationToken);
+                // Connection error
+                transientFailure = true;
+                break;
             }
         }
 
-        // Budget exhausted or permanent failure - use fallback and open circuit
-        if (!_permanentlyDisabled)
+        // Unusable replies and permanent request errors open the circuit; transient failures do not.
+        if (!_permanentlyDisabled && !transientFailure)
         {
             _failureCount++;
             _circuitOpenUntil = DateTimeOffset.UtcNow.AddSeconds(_settings.CircuitBreakerSeconds);
@@ -193,18 +206,26 @@ public class AiPlayerSession : IDisposable
         return (fallbackMove.MoveId, "Local fallback AI", true);
     }
 
-    private async Task<string> SendNimRequestAsync(NimGameStateDto dto, CancellationToken ct)
+    private async Task<string> SendNimRequestAsync(string userPrompt, CancellationToken ct)
     {
+        // Tuned for nvidia/nemotron-3.5-lightning-30b-a3b: reasoning OFF (chat_template_kwargs
+        // enable_thinking=false; with it on, reasoning tokens eat max_tokens and no answer comes back),
+        // greedy decoding (temperature 0, fixed seed) for repeatable choices, 32 output tokens for a
+        // one-digit answer, and a newline stop so the model cannot ramble.
         var requestBody = new
         {
             model = _settings.Model,
             messages = new[]
             {
-                new { role = "system", content = BuildSystemPrompt() },
-                new { role = "user", content = JsonSerializer.Serialize(dto) }
+                new { role = "system", content = NimPrompt.SystemPrompt },
+                new { role = "user", content = userPrompt }
             },
-            temperature = 0.1,
-            max_tokens = 128,
+            temperature = 0.0,
+            top_p = 1.0,
+            max_tokens = 32,
+            seed = 42,
+            stop = new[] { "\n" },
+            chat_template_kwargs = new { enable_thinking = false },
             stream = false
         };
 
@@ -214,117 +235,52 @@ public class AiPlayerSession : IDisposable
         return await response.Content.ReadAsStringAsync(ct);
     }
 
-    private string BuildSystemPrompt()
+    // ---- Decision cache -------------------------------------------------------------------
+    // The same position (colour, style, die, tokens, options) always gets the same answer from a
+    // temperature-0 model, so remember it instead of paying for another call. Bounded, oldest out.
+    private readonly Dictionary<string, string> _cache = new();
+    private readonly Queue<string> _cacheOrder = new();
+    private readonly object _cacheLock = new();
+
+    private bool TryGetCached(string key, out string moveId)
     {
-        return $"""
-            You are a Ludo AI player controlling the {_color} tokens.
-            Strategy: {_strategyHint}
-
-            You MUST respond with exactly one JSON object containing:
-            - "moveId": The exact moveId from one of the provided legal moves.
-            - "reason": A brief explanation of your choice (max 160 chars).
-
-            Do NOT include any other text, code, or explanation outside the JSON.
-            Respond ONLY with valid JSON.
-            """;
+        lock (_cacheLock) return _cache.TryGetValue(key, out moveId!);
     }
 
-    private NimGameStateDto BuildGameStateDto(GameState state, IReadOnlyList<LegalMove> moves, int dieResult, Guid requestId)
+    private void StoreCached(string key, string moveId)
     {
-        var dto = new NimGameStateDto
+        lock (_cacheLock)
         {
-            GameId = state.GameId.ToString(),
-            TurnId = state.CurrentTurnId.ToString(),
-            RollId = (state.CurrentRollId ?? Guid.NewGuid()).ToString(),
-            RequestId = requestId.ToString(),
-            PlayerColor = _color.ToString(),
-            StrategyHint = _strategyHint,
-            DieResult = dieResult,
-            ConsecutiveSixCount = state.ConsecutiveSixCount,
-            IsBonusRoll = state.IsBonusRoll
-        };
-
-        // Token positions
-        foreach (var token in state.AllTokens)
-        {
-            dto.TokenPositions[token.Id] = token.State switch
-            {
-                TokenState.InYard => "yard",
-                TokenState.Finished => "home",
-                _ => $"progress:{token.Progress}"
-            };
+            if (!_cache.TryAdd(key, moveId)) return;
+            _cacheOrder.Enqueue(key);
+            while (_cacheOrder.Count > Math.Max(1, _settings.DecisionCacheSize))
+                _cache.Remove(_cacheOrder.Dequeue());
         }
-
-        // Safe squares
-        dto.SafeSquares = BoardGeometry.SafeIndices.ToList();
-
-        // Blockades
-        for (int i = 0; i < 52; i++)
-        {
-            var blockColor = state.GetBlockadeColor(i);
-            if (blockColor.HasValue)
-            {
-                dto.Blockades.Add(new BlockadeInfo { SharedIndex = i, Color = blockColor.Value.ToString() });
-            }
-        }
-
-        // Recent events
-        dto.RecentEvents = state.EventLog.TakeLast(10).Select(e => e.ToString()).ToList();
-
-        // Legal moves
-        dto.LegalMoves = moves.Select(m => new NimMoveDto
-        {
-            MoveId = m.MoveId,
-            TokenId = m.TokenId,
-            From = m.EntersBoard ? "yard" : $"track:{m.FromProgress}",
-            To = m.Finishes ? "home" : $"track:{m.ToProgress}",
-            EntersBoard = m.EntersBoard,
-            Captures = m.Captures.ToList(),
-            LandsSafe = m.LandsSafe,
-            Finishes = m.Finishes,
-            FormsBlockade = m.FormsBlockade
-        }).ToList();
-
-        return dto;
     }
 
-    private NimGameStateDto BuildRepairDto(NimGameStateDto original, IReadOnlyList<LegalMove> moves)
-    {
-        // For repair, add validation error message
-        original.RecentEvents.Insert(0,
-            $"ERROR: Previous response was invalid. You MUST return exactly one JSON object with moveId from the allowed list. Allowed moveIds: {string.Join(", ", moves.Select(m => m.MoveId))}");
-        return original;
-    }
-
+    /// <summary>Maps the model's reply (an option number) back to the engine's legal move.</summary>
     private (string MoveId, string? Reason)? ParseResponse(string responseBody, IReadOnlyList<LegalMove> legalMoves)
     {
         try
         {
-            // Strip markdown fences
-            string json = responseBody.Trim();
-            try { using var _env = System.Text.Json.JsonDocument.Parse(responseBody);
-                  json = (_env.RootElement.GetProperty("choices")[0].GetProperty("message").GetProperty("content").GetString() ?? json).Trim(); }
-            catch { }
-            if (json.StartsWith("```"))
+            string content = responseBody;
+            using (var doc = JsonDocument.Parse(responseBody))
             {
-                var lines = json.Split('\n');
-                json = string.Join("\n", lines.Skip(1).TakeWhile(l => !l.Trim().StartsWith("```")));
+                content = doc.RootElement.GetProperty("choices")[0].GetProperty("message")
+                    .GetProperty("content").GetString() ?? "";
             }
 
-            var dto = JsonSerializer.Deserialize<NimResponseDto>(json);
-            if (dto == null || string.IsNullOrWhiteSpace(dto.MoveId))
-                return null;
-
-            // Validate moveId
-            if (!legalMoves.Any(m => m.MoveId == dto.MoveId))
+            var choice = NimPrompt.ParseChoice(content, legalMoves.Count);
+            if (choice == null)
             {
-                _logger?.LogWarning("NIM returned unknown moveId: {MoveId}", dto.MoveId);
+                _logger?.LogWarning("NIM reply was not a valid option number: {Reply}", content);
                 return null;
             }
 
-            return (dto.MoveId, dto.Reason);
+            var move = legalMoves[choice.Value - 1];
+            return (move.MoveId, $"NIM chose option {choice.Value}: {move.TokenId}");
         }
-        catch (JsonException ex)
+        catch (Exception ex) when (ex is JsonException or KeyNotFoundException or InvalidOperationException)
         {
             _logger?.LogWarning("Failed to parse NIM response: {Error}", ex.Message);
             return null;
@@ -346,75 +302,10 @@ public class AiPlayerSession : IDisposable
         HttpStatusCode.PaymentRequired => true,
         HttpStatusCode.Forbidden => true,
         HttpStatusCode.NotFound => true, // model not found
+        HttpStatusCode.Gone => true,     // model retired (end of life)
         HttpStatusCode.UnprocessableEntity => true,
         _ => false
     };
-
-    private TimeSpan? GetRetryAfter(HttpRequestException ex)
-    {
-        // Check for Retry-After header in response
-        // Since HttpRequestException doesn't expose headers easily, we estimate
-        if (ex.StatusCode == HttpStatusCode.TooManyRequests ||
-            ex.StatusCode == (HttpStatusCode)529)
-        {
-            // Default: use local backoff
-            return null;
-        }
-        return null;
-    }
-
-    private async Task<TimeSpan> WaitForRetryAsync(TimeSpan? serverDelay, TimeSpan localBackoff, int attempt,
-        DateTimeOffset totalStarted, TimeSpan totalBudget, CancellationToken ct)
-    {
-        TimeSpan effectiveDelay;
-
-        if (serverDelay.HasValue)
-        {
-            effectiveDelay = serverDelay.Value > localBackoff ? serverDelay.Value : localBackoff;
-        }
-        else
-        {
-            effectiveDelay = localBackoff;
-        }
-
-        // Add jitter (0-20%)
-        var jitter = TimeSpan.FromMilliseconds(
-            Random.Shared.NextDouble() * effectiveDelay.TotalMilliseconds * 0.2);
-        effectiveDelay += jitter;
-
-        // Cap at max retry delay
-        var maxDelay = TimeSpan.FromSeconds(_settings.MaxRetryDelaySeconds);
-        if (effectiveDelay > maxDelay && serverDelay == null)
-            effectiveDelay = maxDelay;
-
-        // Check remaining budget
-        var remaining = totalBudget - (DateTimeOffset.UtcNow - totalStarted);
-        if (effectiveDelay > remaining)
-        {
-            // If server-directed, respect it but don't retry after budget
-            if (serverDelay.HasValue)
-                throw new TimeoutException("Server-directed delay exceeds retry budget");
-            effectiveDelay = remaining;
-        }
-
-        if (effectiveDelay > TimeSpan.Zero)
-        {
-            _logger?.LogInformation("{Color}: Waiting {Delay} before retry (attempt {Attempt})",
-                _color, effectiveDelay, attempt);
-            await Task.Delay(effectiveDelay, ct);
-        }
-
-        // Progress local backoff
-        return localBackoff.TotalSeconds switch
-        {
-            <= 15 => TimeSpan.FromSeconds(30),
-            <= 30 => TimeSpan.FromSeconds(60),
-            <= 60 => TimeSpan.FromSeconds(120),
-            <= 120 => TimeSpan.FromSeconds(240),
-            <= 240 => TimeSpan.FromSeconds(480),
-            _ => TimeSpan.FromSeconds(900)
-        };
-    }
 
     private async Task WaitForCallIntervalAsync(CancellationToken ct)
     {
