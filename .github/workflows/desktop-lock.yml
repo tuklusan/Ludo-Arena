@@ -1,0 +1,44 @@
+# ============================================================================
+# Copyright (c) 2026 Supratim Sanyal of SANYALnet Labs.
+# Proprietary rights reserved except as expressly licensed herein.
+#
+# LUDO ARENA
+# This file is governed by the SANYALnet Labs Non-Commercial License in the
+# root LICENSE file. Non-Commercial use is permitted; Commercial Use and use
+# for AI/ML model training are prohibited unless separately authorized.
+#
+# Attribution is required: "Based on original work by Supratim Sanyal of
+# SANYALnet Labs." See LICENSE for full terms, warranty disclaimer, termination,
+# patent, trademark, and governing-law provisions.
+# ============================================================================
+#
+# Desktop lock. Fails when a change touches the desktop implementation (the Avalonia app, the
+# shared Core and AI projects, tests, solution/SDK pins) without the explicit override token
+# [desktop-change] in a commit message. Web-only work (src/LudoNimArena.Browser, wwwroot,
+# release workflow) is unaffected. See scripts/check_desktop_lock.sh.
+name: Desktop Lock
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  lock:
+    name: Desktop files unchanged
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Check locked paths
+        run: |
+          if [ "${{ github.event_name }}" = "pull_request" ]; then
+            base="${{ github.event.pull_request.base.sha }}"; head="${{ github.event.pull_request.head.sha }}"
+          else
+            base="${{ github.event.before }}"; head="${{ github.sha }}"
+          fi
+          bash scripts/check_desktop_lock.sh "$base" "$head"

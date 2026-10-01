@@ -11,19 +11,24 @@
 // SANYALnet Labs." See LICENSE for full terms, warranty disclaimer, termination,
 // patent, trademark, and governing-law provisions.
 // ============================================================================
-
-using System.Threading.Tasks;
 using Avalonia;
-using Avalonia.Browser;
-using Avalonia.ReactiveUI;
-using LudoNimArena.Browser;
+using Avalonia.Controls.ApplicationLifetimes;
+using Avalonia.Markup.Xaml;
+using LudoNimArena.App;
 
-internal sealed class Program
+namespace LudoNimArena.Browser;
+
+// Web-only application shell. The desktop App/MainWindow/MainView are not compiled into the
+// browser build; this host serves the responsive WebView instead.
+public partial class WebApp : Application
 {
-    private static Task Main(string[] args) => BuildAvaloniaApp()
-        .WithInterFont()
-        .UseReactiveUI()
-        .StartBrowserAppAsync("out");
+    public override void Initialize() => AvaloniaXamlLoader.Load(this);
 
-    public static AppBuilder BuildAvaloniaApp() => AppBuilder.Configure<WebApp>();
+    public override void OnFrameworkInitializationCompleted()
+    {
+        if (ApplicationLifetime is ISingleViewApplicationLifetime singleView)
+            singleView.MainView = new WebView { DataContext = new MainViewModel() };
+
+        base.OnFrameworkInitializationCompleted();
+    }
 }
