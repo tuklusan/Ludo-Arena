@@ -12,7 +12,8 @@
 # patent, trademark, and governing-law provisions.
 # ============================================================================
 #
-# Release pipeline. Pushing a tag like v1.0.1 (or running this workflow by hand with a tag)
+# Release pipeline. Run only on request (Actions > Release > Run workflow, or `gh workflow run`)
+# with an existing tag such as v1.0.1; pushing or tagging does NOT start it.
 #   1. tests the code and packages the six desktop archives + SHA256SUMS.txt,
 #   2. attaches them to the GitHub Release for that tag (created if it does not exist), and
 #   3. builds the WebAssembly version of the game and publishes it to GitHub Pages at
@@ -29,8 +30,7 @@
 name: Release
 
 on:
-  push:
-    tags: [ 'v*' ]
+  # Manual only: pushing or tagging never starts a release.
   workflow_dispatch:
     inputs:
       tag:
@@ -47,12 +47,12 @@ permissions:
   contents: read
 
 env:
-  TAG: ${{ inputs.tag || github.ref_name }}
+  TAG: ${{ inputs.tag }}
   DOTNET_NOLOGO: '1'
   DOTNET_CLI_TELEMETRY_OPTOUT: '1'
 
 concurrency:
-  group: release-${{ inputs.tag || github.ref_name }}
+  group: release-${{ inputs.tag }}
   cancel-in-progress: false
 
 jobs:
