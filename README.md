@@ -13,16 +13,17 @@
 > deterministic strategy bots. It uses **no AI models and makes no API calls**. The language-model
 > players (NVIDIA NIM) exist **only in the desktop app** below.
 
-### Download the desktop app — v1.2.1
+### Download the desktop app
 
-Prebuilt packages (with the language-model AI players) for six platform/architecture combinations are on the
-[**Releases**](https://github.com/tuklusan/Ludo-Arena/releases/latest) page.
+**[⬇ Get the latest release →](https://github.com/tuklusan/Ludo-Arena/releases/latest)** — prebuilt packages
+(with the language-model AI players) for six platform/architecture combinations. The release page
+always shows the current version, with the same file names every time (`<version>` below stands for it):
 
 | Platform | x64 | arm64 |
 |---|---|---|
-| Linux | `LudoArena-1.2.1-linux-x64.tar.gz` | `LudoArena-1.2.1-linux-arm64.tar.gz` |
-| Windows | `LudoArena-1.2.1-win-x64.zip` | `LudoArena-1.2.1-win-arm64.zip` |
-| macOS | `LudoArena-1.2.1-osx-x64.tar.gz` | `LudoArena-1.2.1-osx-arm64.tar.gz` |
+| Linux | `LudoArena-<version>-linux-x64.tar.gz` | `LudoArena-<version>-linux-arm64.tar.gz` |
+| Windows | `LudoArena-<version>-win-x64.zip` | `LudoArena-<version>-win-arm64.zip` |
+| macOS | `LudoArena-<version>-osx-x64.tar.gz` | `LudoArena-<version>-osx-arm64.tar.gz` |
 
 These are **minimal, framework-dependent** builds — roughly 10–13 MB, because they use the .NET 10
 runtime you already have rather than bundling their own copy. There is no installer: extract the
@@ -34,13 +35,13 @@ services are installed, so uninstalling is deleting the folder.
 
 ```bash
 # Linux / macOS
-mkdir -p ludo-arena && tar -xzf LudoArena-1.2.1-linux-x64.tar.gz -C ludo-arena && cd ludo-arena
+mkdir -p ludo-arena && tar -xzf LudoArena-*-linux-x64.tar.gz -C ludo-arena && cd ludo-arena   # use your platform's file
 ./LudoNimArena.App
 ```
 
 ```powershell
 # Windows
-Expand-Archive LudoArena-1.2.1-win-x64.zip -DestinationPath ludo-arena; cd ludo-arena
+Expand-Archive (Get-Item LudoArena-*-win-x64.zip) -DestinationPath ludo-arena; cd ludo-arena
 .\LudoNimArena.App.exe
 ```
 
