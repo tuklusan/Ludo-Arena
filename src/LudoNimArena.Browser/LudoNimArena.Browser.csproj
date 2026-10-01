@@ -29,7 +29,7 @@
     <AssemblyName>LudoNimArena.Browser</AssemblyName>
     <OutputType>Exe</OutputType>
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
-    <WasmMainJSPath>AppBundle\main.js</WasmMainJSPath>
+    <WasmMainJSPath>wwwroot\main.js</WasmMainJSPath>
     <WasmRuntimeAssetsLocation>./_framework</WasmRuntimeAssetsLocation>
     <!-- Relink the .NET runtime with Emscripten (emcc) for a smaller, faster dotnet.native.wasm. -->
     <WasmBuildNative>true</WasmBuildNative>
@@ -39,10 +39,6 @@
     <!-- Set -p:RunAOTCompilation=true to ahead-of-time compile to WebAssembly (slower build, faster game). -->
     <TrimMode>partial</TrimMode>
   </PropertyGroup>
-
-  <ItemGroup>
-    <WasmExtraFilesToDeploy Include="AppBundle\**" />
-  </ItemGroup>
 
   <ItemGroup>
     <ProjectReference Include="..\LudoNimArena.Core\LudoNimArena.Core.csproj" />

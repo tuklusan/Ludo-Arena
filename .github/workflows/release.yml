@@ -23,7 +23,7 @@
 # Avalonia browser head that shares the app's sources. `dotnet publish` runs the .NET
 # WebAssembly toolchain, whose `wasm-tools` workload ships Emscripten (emcc) and relinks
 # the .NET runtime to WebAssembly with it. The page around the canvas is the minimal,
-# SEO/social-card-ready wrapper in src/LudoNimArena.Browser/AppBundle/; the game starts on a
+# SEO/social-card-ready wrapper in src/LudoNimArena.Browser/wwwroot/; the game starts on a
 # "CLICK TO PLAY" screen, which is also the user gesture browsers need to allow audio.
 #
 # One-time repository setup: Settings > Pages > Build and deployment > Source = "GitHub Actions".
@@ -37,6 +37,11 @@ on:
         description: 'Release tag to build and publish (e.g. v1.0.1)'
         required: true
         type: string
+      web_only:
+        description: 'Build and deploy only the web version (skip the desktop packages and the GitHub Release)'
+        required: false
+        type: boolean
+        default: false
       aot:
         description: 'Ahead-of-time compile the web build to WebAssembly (slower build, faster game)'
         required: false
@@ -58,6 +63,7 @@ concurrency:
 jobs:
   desktop:
     name: Test and package desktop builds
+    if: ${{ !inputs.web_only }}
     runs-on: ubuntu-24.04
     timeout-minutes: 30
     steps:

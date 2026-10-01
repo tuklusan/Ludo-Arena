@@ -17,13 +17,13 @@
 # Renders the 1200x630 social-share card (Open Graph / X summary_large_image) used by
 # the GitHub Pages build, from one of the app-rendered runner screenshots.
 #   python scripts/make_og_image.py
-# Requires Pillow. Output: src/LudoNimArena.Browser/AppBundle/og-image.png
+# Requires Pillow. Output: src/LudoNimArena.Browser/wwwroot/og-image.png
 from pathlib import Path
 from PIL import Image, ImageDraw, ImageFont
 
 ROOT = Path(__file__).resolve().parent.parent
 SRC = ROOT / "screenshots" / "github-hosted-linux-ubuntu-24.04-x64.png"
-OUT = ROOT / "src" / "LudoNimArena.Browser" / "AppBundle" / "og-image.png"
+OUT = ROOT / "src" / "LudoNimArena.Browser" / "wwwroot" / "og-image.png"
 W, H = 1200, 630
 
 
