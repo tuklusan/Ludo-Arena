@@ -70,19 +70,19 @@
                         <TextBlock Text="Player Names" FontSize="18" FontWeight="Bold" Margin="0,16,0,0"/>
                         <Grid ColumnDefinitions="Auto,*,Auto" RowDefinitions="Auto,Auto,Auto,Auto">
                             <Ellipse Grid.Row="0" Grid.Column="0" Width="20" Height="20" Fill="Red" Margin="0,0,8,0"/>
-                            <TextBox Grid.Row="0" Grid.Column="1" Text="{Binding RedName}" Watermark="HAL 9000"/>
+                            <TextBox MaxLength="{x:Static app:PlayerNameRules.MaxLength}" Grid.Row="0" Grid.Column="1" Text="{Binding RedName}" Watermark="HAL 9000"/>
                             <TextBlock Classes="hint" Grid.Row="0" Grid.Column="2" Text="Assertive" Foreground="Gray" VerticalAlignment="Center" Margin="8,0,0,0"/>
 
                             <Ellipse Grid.Row="1" Grid.Column="0" Width="20" Height="20" Fill="Green" Margin="0,0,8,0"/>
-                            <TextBox Grid.Row="1" Grid.Column="1" Text="{Binding GreenName}" Watermark="Marvin"/>
+                            <TextBox MaxLength="{x:Static app:PlayerNameRules.MaxLength}" Grid.Row="1" Grid.Column="1" Text="{Binding GreenName}" Watermark="Marvin"/>
                             <TextBlock Classes="hint" Grid.Row="1" Grid.Column="2" Text="Safety-conscious" Foreground="Gray" VerticalAlignment="Center" Margin="8,0,0,0"/>
 
                             <Ellipse Grid.Row="2" Grid.Column="0" Width="20" Height="20" Fill="#dcc81e" Margin="0,0,8,0"/>
-                            <TextBox Grid.Row="2" Grid.Column="1" Text="{Binding YellowName}" Watermark="Mal"/>
+                            <TextBox MaxLength="{x:Static app:PlayerNameRules.MaxLength}" Grid.Row="2" Grid.Column="1" Text="{Binding YellowName}" Watermark="Mal"/>
                             <TextBlock Classes="hint" Grid.Row="2" Grid.Column="2" Text="Progress-focused" Foreground="Gray" VerticalAlignment="Center" Margin="8,0,0,0"/>
 
                             <Ellipse Grid.Row="3" Grid.Column="0" Width="20" Height="20" Fill="Blue" Margin="0,0,8,0"/>
-                            <TextBox Grid.Row="3" Grid.Column="1" Text="{Binding BlueName}" Watermark="Deckard"/>
+                            <TextBox MaxLength="{x:Static app:PlayerNameRules.MaxLength}" Grid.Row="3" Grid.Column="1" Text="{Binding BlueName}" Watermark="Deckard"/>
                             <TextBlock Classes="hint" Grid.Row="3" Grid.Column="2" Text="Balanced" Foreground="Gray" VerticalAlignment="Center" Margin="8,0,0,0"/>
                         </Grid>
 
@@ -115,7 +115,7 @@
                                 <StackPanel Spacing="2">
                                     <StackPanel Orientation="Horizontal" Spacing="6">
                                         <Ellipse Width="14" Height="14" Fill="Red"/>
-                                        <TextBlock Text="{Binding RedName}" FontWeight="Bold"/>
+                                        <TextBlock Text="{Binding RedName}" FontWeight="Bold" TextTrimming="CharacterEllipsis"/>
                                     </StackPanel>
                                     <TextBlock Text="{Binding RedStatus}" FontSize="11" Foreground="Gray"/>
                                 </StackPanel>
@@ -126,7 +126,7 @@
                                 <StackPanel Spacing="2">
                                     <StackPanel Orientation="Horizontal" Spacing="6">
                                         <Ellipse Width="14" Height="14" Fill="Green"/>
-                                        <TextBlock Text="{Binding GreenName}" FontWeight="Bold"/>
+                                        <TextBlock Text="{Binding GreenName}" FontWeight="Bold" TextTrimming="CharacterEllipsis"/>
                                     </StackPanel>
                                     <TextBlock Text="{Binding GreenStatus}" FontSize="11" Foreground="Gray"/>
                                 </StackPanel>
@@ -137,7 +137,7 @@
                                 <StackPanel Spacing="2">
                                     <StackPanel Orientation="Horizontal" Spacing="6">
                                         <Ellipse Width="14" Height="14" Fill="#dcc81e"/>
-                                        <TextBlock Text="{Binding YellowName}" FontWeight="Bold"/>
+                                        <TextBlock Text="{Binding YellowName}" FontWeight="Bold" TextTrimming="CharacterEllipsis"/>
                                     </StackPanel>
                                     <TextBlock Text="{Binding YellowStatus}" FontSize="11" Foreground="Gray"/>
                                 </StackPanel>
@@ -148,7 +148,7 @@
                                 <StackPanel Spacing="2">
                                     <StackPanel Orientation="Horizontal" Spacing="6">
                                         <Ellipse Width="14" Height="14" Fill="Blue"/>
-                                        <TextBlock Text="{Binding BlueName}" FontWeight="Bold"/>
+                                        <TextBlock Text="{Binding BlueName}" FontWeight="Bold" TextTrimming="CharacterEllipsis"/>
                                     </StackPanel>
                                     <TextBlock Text="{Binding BlueStatus}" FontSize="11" Foreground="Gray"/>
                                 </StackPanel>

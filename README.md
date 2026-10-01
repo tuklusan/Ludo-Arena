@@ -13,16 +13,16 @@
 > deterministic strategy bots. It uses **no AI models and makes no API calls**. The language-model
 > players (NVIDIA NIM) exist **only in the desktop app** below.
 
-### Download the desktop app — v1.1.0
+### Download the desktop app — v1.2.0
 
 Prebuilt packages (with the language-model AI players) for six platform/architecture combinations are on the
 [**Releases**](https://github.com/tuklusan/Ludo-Arena/releases/latest) page.
 
 | Platform | x64 | arm64 |
 |---|---|---|
-| Linux | `LudoArena-1.1.0-linux-x64.tar.gz` | `LudoArena-1.1.0-linux-arm64.tar.gz` |
-| Windows | `LudoArena-1.1.0-win-x64.zip` | `LudoArena-1.1.0-win-arm64.zip` |
-| macOS | `LudoArena-1.1.0-osx-x64.tar.gz` | `LudoArena-1.1.0-osx-arm64.tar.gz` |
+| Linux | `LudoArena-1.2.0-linux-x64.tar.gz` | `LudoArena-1.2.0-linux-arm64.tar.gz` |
+| Windows | `LudoArena-1.2.0-win-x64.zip` | `LudoArena-1.2.0-win-arm64.zip` |
+| macOS | `LudoArena-1.2.0-osx-x64.tar.gz` | `LudoArena-1.2.0-osx-arm64.tar.gz` |
 
 These are **minimal, framework-dependent** builds — roughly 10–13 MB, because they use the .NET 10
 runtime you already have rather than bundling their own copy. There is no installer: extract the
@@ -34,13 +34,13 @@ services are installed, so uninstalling is deleting the folder.
 
 ```bash
 # Linux / macOS
-mkdir -p ludo-arena && tar -xzf LudoArena-1.1.0-linux-x64.tar.gz -C ludo-arena && cd ludo-arena
+mkdir -p ludo-arena && tar -xzf LudoArena-1.2.0-linux-x64.tar.gz -C ludo-arena && cd ludo-arena
 ./LudoNimArena.App
 ```
 
 ```powershell
 # Windows
-Expand-Archive LudoArena-1.1.0-win-x64.zip -DestinationPath ludo-arena; cd ludo-arena
+Expand-Archive LudoArena-1.2.0-win-x64.zip -DestinationPath ludo-arena; cd ludo-arena
 .\LudoNimArena.App.exe
 ```
 
@@ -135,8 +135,10 @@ and turn count.
   three-consecutive-sixes ends the turn, safe squares, blockades, exact roll to finish.
 - A 15×15 board drawn with Avalonia vector APIs; smooth interpolated token movement; a die that
   flashes without ever resizing or reflowing the board.
-- Per-player "last decision source" indicator (NIM vs. local fallback), a scrollable event log,
-  and an always-visible QUIT.
+- Per-player "last decision source" indicator (NIM vs. local fallback), and a scrollable event log
+  that shows each NIM request going out, the response coming back, how it resolved and, when the
+  local AI steps in, why (timeout, HTTP error, retired model, ...). Player names are limited to
+  10 characters (16 with a colour suffix when two names match). An always-visible QUIT.
 - Cancellation-aware retry, throttling and a circuit breaker around the NIM client (handles
   HTTP 429/529, `Retry-After`, long server waits) — the UI never freezes on the network.
 

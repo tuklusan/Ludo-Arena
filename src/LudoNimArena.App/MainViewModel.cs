@@ -194,6 +194,15 @@ public partial class MainViewModel : ObservableObject
 
         var gameId = _gameState.GameId;
 
+        // Names are limited and de-duplicated (see PlayerNameRules); show the final names on the cards.
+        var names = PlayerNameRules.Resolve(
+            (PlayerColor.Red, RedName, "HAL 9000"), (PlayerColor.Green, GreenName, "Marvin"),
+            (PlayerColor.Yellow, YellowName, "Mal"), (PlayerColor.Blue, BlueName, "Deckard"));
+        RedName = names[PlayerColor.Red];
+        GreenName = names[PlayerColor.Green];
+        YellowName = names[PlayerColor.Yellow];
+        BlueName = names[PlayerColor.Blue];
+
         var players = ImmutableDictionary<PlayerColor, Player>.Empty
             .Add(PlayerColor.Red, new Player(PlayerColor.Red, RedName, "assertive but legal"))
             .Add(PlayerColor.Green, new Player(PlayerColor.Green, GreenName, "safety-conscious"))
@@ -204,6 +213,11 @@ public partial class MainViewModel : ObservableObject
             .WithEvent(new GameStarted(gameId));
 
         AddLog("Game started!");
+        AddLog(_nimSettings.HasApiKey
+            ? $"AI: NVIDIA NIM {_nimSettings.Model} ({_nimSettings.RequestTimeoutSeconds} s timeout), local AI as fallback"
+            : OperatingSystem.IsBrowser()
+                ? "AI: local strategy bots (browser version)"
+                : "AI: local strategy bots (no NVIDIA_API_KEY set)");
 
         // Show every token in its yard (and correct player cards) from the start, not only once
         // the first turn begins after the opening roll-off.
@@ -386,8 +400,11 @@ public partial class MainViewModel : ObservableObject
             string selectedMoveId;
             try
             {
+                // The session reports each step (request out, response in, why local AI) as log lines.
+                var playerName = _gameState.GetPlayer(color).DisplayName;
                 var (moveId, reason, isFallback) = await session.RequestMoveAsync(
-                    _gameState, legalMoves, dieResult, requestId, ct);
+                    _gameState, legalMoves, dieResult, requestId, ct,
+                    trace: line => AddLog($"{playerName}: {line}"));
 
                 selectedMoveId = moveId;
 
@@ -395,13 +412,11 @@ public partial class MainViewModel : ObservableObject
                 {
                     _gameState = _gameState.WithEvent(
                         new FallbackDecisionSelected(_gameState.GameId, turnId, color, moveId));
-                    AddLog($"{_gameState.GetPlayer(color).DisplayName}: {reason}");
                 }
                 else
                 {
                     _gameState = _gameState.WithEvent(
                         new AiDecisionReceived(_gameState.GameId, turnId, rollId, color, moveId, reason));
-                    AddLog($"{_gameState.GetPlayer(color).DisplayName}: {reason}");
                 }
             }
             catch (OperationCanceledException)
@@ -629,10 +644,10 @@ public partial class MainViewModel : ObservableObject
     {
         var timestamp = DateTimeOffset.UtcNow.ToString("HH:mm:ss");
         EventLog.Insert(0, $"[{timestamp}] {message}");
-        while (EventLog.Count > 100)
+        while (EventLog.Count > 300)
             EventLog.RemoveAt(EventLog.Count - 1);
 
-        // The on-screen log is capped at 100 lines; the transcript keeps everything.
+        // The on-screen log is capped at 300 lines; the transcript keeps everything.
         WriteTranscript($"[{timestamp}] {message}");
     }
 

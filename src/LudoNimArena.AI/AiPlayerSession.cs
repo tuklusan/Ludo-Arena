@@ -68,19 +68,25 @@ public class AiPlayerSession : IDisposable
     public bool IsCircuitOpen => DateTimeOffset.UtcNow < _circuitOpenUntil;
     public bool IsPermanentlyDisabled => _permanentlyDisabled;
 
-    /// <summary>Request a move from NIM or fallback with full retry/circuit-breaker logic.</summary>
+    /// <summary>
+    /// Request a move from NIM or fallback with full retry/circuit-breaker logic. <paramref name="trace"/>
+    /// receives one short human-readable line per step (request out, response in, how it resolved, and why
+    /// the local AI was used) for the game's event log. It never contains the key, headers or prompt.
+    /// </summary>
     public async Task<(string MoveId, string? Reason, bool IsFallback)> RequestMoveAsync(
         GameState state,
         IReadOnlyList<LegalMove> legalMoves,
         int dieResult,
         Guid requestId,
-        CancellationToken cancellationToken)
+        CancellationToken cancellationToken,
+        Action<string>? trace = null)
     {
         // If permanently disabled or no API key, use fallback immediately
         if (_permanentlyDisabled || !_settings.HasApiKey)
         {
             var fallback = _fallbackAi.SelectMove(state, _color, legalMoves);
             _logger?.LogInformation("{Color}: Using fallback (NIM disabled/missing key)", _color);
+            trace?.Invoke(_permanentlyDisabled ? "local AI (NIM off for this game)" : "local AI");
             return (fallback.MoveId, "Local fallback AI", true);
         }
 
@@ -89,12 +95,17 @@ public class AiPlayerSession : IDisposable
         {
             _logger?.LogInformation("{Color}: Circuit breaker open, using fallback", _color);
             var fallback = _fallbackAi.SelectMove(state, _color, legalMoves);
+            var left = (int)Math.Ceiling((_circuitOpenUntil - DateTimeOffset.UtcNow).TotalSeconds);
+            trace?.Invoke($"local AI (NIM paused, {left} s left)");
             return (fallback.MoveId, "Local fallback AI (circuit open)", true);
         }
 
         // A forced move needs no model call.
         if (legalMoves.Count == 1)
+        {
+            trace?.Invoke("only legal move");
             return (legalMoves[0].MoveId, "Only legal move", false);
+        }
 
         // Compact numbered-menu prompt (see NimPrompt). Identical situations are answered from the cache.
         var userPrompt = NimPrompt.BuildUser(state, _color, _strategyHint, legalMoves, dieResult);
@@ -102,6 +113,7 @@ public class AiPlayerSession : IDisposable
         if (TryGetCached(cacheKey, out var cachedMoveId) && legalMoves.Any(m => m.MoveId == cachedMoveId))
         {
             _logger?.LogDebug("{Color}: decision cache hit", _color);
+            trace?.Invoke($"NIM cached: {Describe(legalMoves, cachedMoveId)}");
             return (cachedMoveId, "NIM (cached decision)", false);
         }
 
@@ -109,6 +121,7 @@ public class AiPlayerSession : IDisposable
         // reply. A transient failure (timeout, network error, 429/5xx) never stalls the game: this move
         // falls back to the local AI and the next turn tries NIM again.
         bool transientFailure = false;
+        var clock = new System.Diagnostics.Stopwatch();
 
         for (int attempt = 1; attempt <= 2; attempt++)
         {
@@ -125,16 +138,22 @@ public class AiPlayerSession : IDisposable
                 {
                     _lastCallTime = DateTimeOffset.UtcNow;
 
+                    trace?.Invoke(attempt == 1
+                        ? $">> NIM request ({legalMoves.Count} options)"
+                        : ">> NIM retry (format reminder)");
+                    clock.Restart();
                     var response = await SendNimRequestAsync(userPrompt, cancellationToken);
+                    var seconds = Seconds(clock);
 
                     // Success - close circuit if it was half-open
                     _failureCount = 0;
                     _circuitOpenUntil = DateTimeOffset.MinValue;
 
-                    var parsed = ParseResponse(response, legalMoves);
+                    var parsed = ParseResponse(response, legalMoves, out var reply);
                     if (parsed != null)
                     {
                         _logger?.LogInformation("{Color}: NIM returned {MoveId}", _color, parsed.Value.MoveId);
+                        trace?.Invoke($"<< 200 in {seconds} s: \"{Clip(reply)}\" = {Describe(legalMoves, parsed.Value.MoveId)}");
                         StoreCached(cacheKey, parsed.Value.MoveId);
                         return (parsed.Value.MoveId, SafeReason(parsed.Value.Reason), false);
                     }
@@ -142,11 +161,13 @@ public class AiPlayerSession : IDisposable
                     // Unusable reply - one retry that restates the answer format
                     if (attempt == 1)
                     {
+                        trace?.Invoke($"<< 200 in {seconds} s: \"{Clip(reply)}\" is not a valid option; retrying");
                         userPrompt += NimPrompt.RepairSuffix(legalMoves.Count);
                         continue;
                     }
 
                     // Repair failed, use fallback
+                    trace?.Invoke($"<< 200 in {seconds} s: \"{Clip(reply)}\" is not a valid option; local AI for this move (NIM paused {_settings.CircuitBreakerSeconds} s)");
                     break;
                 }
                 finally
@@ -161,6 +182,7 @@ public class AiPlayerSession : IDisposable
             catch (HttpRequestException ex) when (ex.StatusCode != null)
             {
                 var status = (HttpStatusCode)ex.StatusCode;
+                var seconds = Seconds(clock);
 
                 if (IsPermanentFailure(status))
                 {
@@ -170,6 +192,11 @@ public class AiPlayerSession : IDisposable
                     {
                         _permanentlyDisabled = true;
                         _logger?.LogWarning("{Color}: NIM permanently disabled after {Status}", _color, status);
+                        trace?.Invoke($"<< HTTP {(int)status} in {seconds} s: {DescribeStatus(status)}; NIM off for this game, local AI");
+                    }
+                    else
+                    {
+                        trace?.Invoke($"<< HTTP {(int)status} in {seconds} s: {DescribeStatus(status)}; local AI for this move (NIM paused {_settings.CircuitBreakerSeconds} s)");
                     }
                     break;
                 }
@@ -177,18 +204,21 @@ public class AiPlayerSession : IDisposable
                 // Anything else (429, 5xx, ...): fall back for this move, retry NIM next turn.
                 transientFailure = true;
                 _logger?.LogInformation("{Color}: NIM {Status}; local fallback for this move", _color, status);
+                trace?.Invoke($"<< HTTP {(int)status} in {seconds} s; local AI for this move, NIM retried next turn");
                 break;
             }
             catch (TaskCanceledException) when (!cancellationToken.IsCancellationRequested)
             {
                 // Timed out (RequestTimeoutSeconds)
                 transientFailure = true;
+                trace?.Invoke($"<< no reply in {_settings.RequestTimeoutSeconds} s; local AI for this move, NIM retried next turn");
                 break;
             }
             catch (HttpRequestException)
             {
                 // Connection error
                 transientFailure = true;
+                trace?.Invoke("<< network error; local AI for this move, NIM retried next turn");
                 break;
             }
         }
@@ -205,6 +235,36 @@ public class AiPlayerSession : IDisposable
         var fallbackMove = _fallbackAi.SelectMove(state, _color, legalMoves);
         return (fallbackMove.MoveId, "Local fallback AI", true);
     }
+
+    private static string Seconds(System.Diagnostics.Stopwatch clock) =>
+        clock.Elapsed.TotalSeconds.ToString("0.0", System.Globalization.CultureInfo.InvariantCulture);
+
+    /// <summary>"option 2 (token 1)" for the log.</summary>
+    private static string Describe(IReadOnlyList<LegalMove> moves, string moveId)
+    {
+        for (int i = 0; i < moves.Count; i++)
+            if (moves[i].MoveId == moveId)
+                return $"option {i + 1} (token {moves[i].TokenId[^1]})";
+        return moveId;
+    }
+
+    /// <summary>Single-line, length-limited copy of the model's reply for the log.</summary>
+    private static string Clip(string? reply)
+    {
+        var s = (reply ?? "").Replace("\r", " ").Replace("\n", " ").Trim();
+        return s.Length > 24 ? s[..24] + ".." : s;
+    }
+
+    private static string DescribeStatus(HttpStatusCode status) => status switch
+    {
+        HttpStatusCode.Unauthorized => "key rejected",
+        HttpStatusCode.PaymentRequired => "payment required",
+        HttpStatusCode.Forbidden => "access denied",
+        HttpStatusCode.NotFound => "model not found",
+        HttpStatusCode.Gone => "model retired",
+        HttpStatusCode.BadRequest or HttpStatusCode.UnprocessableEntity => "request rejected",
+        _ => status.ToString()
+    };
 
     private async Task<string> SendNimRequestAsync(string userPrompt, CancellationToken ct)
     {
@@ -259,8 +319,9 @@ public class AiPlayerSession : IDisposable
     }
 
     /// <summary>Maps the model's reply (an option number) back to the engine's legal move.</summary>
-    private (string MoveId, string? Reason)? ParseResponse(string responseBody, IReadOnlyList<LegalMove> legalMoves)
+    private (string MoveId, string? Reason)? ParseResponse(string responseBody, IReadOnlyList<LegalMove> legalMoves, out string reply)
     {
+        reply = "";
         try
         {
             string content = responseBody;
@@ -270,6 +331,7 @@ public class AiPlayerSession : IDisposable
                     .GetProperty("content").GetString() ?? "";
             }
 
+            reply = content;
             var choice = NimPrompt.ParseChoice(content, legalMoves.Count);
             if (choice == null)
             {
