@@ -11,10 +11,13 @@
 // SANYALnet Labs." See LICENSE for full terms, warranty disclaimer, termination,
 // patent, trademark, and governing-law provisions.
 // ============================================================================
+using System.ComponentModel;
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Data.Converters;
 using Avalonia.Media;
+using Avalonia.Threading;
+using LudoNimArena.App;
 
 namespace LudoNimArena.Browser;
 
@@ -46,9 +49,37 @@ public partial class WebView : UserControl
 
     private SizeClass? _current;
 
+    private MainViewModel? _vm;
+
     public WebView()
     {
         InitializeComponent();
+    }
+
+    protected override void OnDataContextChanged(EventArgs e)
+    {
+        base.OnDataContextChanged(e);
+        if (_vm != null) _vm.PropertyChanged -= OnViewModelChanged;
+        _vm = DataContext as MainViewModel;
+        if (_vm != null) _vm.PropertyChanged += OnViewModelChanged;
+    }
+
+    private void OnViewModelChanged(object? sender, PropertyChangedEventArgs e)
+    {
+        if (e.PropertyName == nameof(MainViewModel.IsSetupVisible)) StartIfCompact();
+    }
+
+    // Phones skip the player-setup screen: the game starts straight away (and again after
+    // "new game"), with the default player names.
+    private void StartIfCompact()
+    {
+        if (_current != SizeClass.Compact || _vm is not { IsSetupVisible: true }) return;
+        Dispatcher.UIThread.Post(() =>
+        {
+            if (_current == SizeClass.Compact && _vm is { IsSetupVisible: true } vm
+                && vm.StartGameCommand.CanExecute(null))
+                vm.StartGameCommand.Execute(null);
+        });
     }
 
     protected override void OnSizeChanged(SizeChangedEventArgs e)
@@ -124,5 +155,9 @@ public partial class WebView : UserControl
         Grid.SetRowSpan(CopyrightOverlay, 2);
         Grid.SetColumn(LeftHost, 0);
         Grid.SetColumn(RightHost, 2);
+
+        // No QUIT in a browser tab: on phones the header button starts a fresh game.
+        HeaderQuit.Content = compact ? "NEW" : "QUIT";
+        StartIfCompact();
     }
 }

@@ -48,7 +48,7 @@
                     <TextBlock Classes="subtitle" Text="Four AI Players" FontSize="14" Foreground="White" Opacity="0.8" VerticalAlignment="Center" Margin="16,0,0,0"/>
                     <TextBlock Classes="phase" Text="{Binding PhaseMessage}" FontSize="12" Foreground="White" Opacity="0.7" VerticalAlignment="Center" Margin="12,0,0,0"/>
                 </StackPanel>
-                <Button Grid.Column="1" Classes="quit" Content="QUIT" Command="{Binding QuitCommand}"
+                <Button x:Name="HeaderQuit" Grid.Column="1" Classes="quit" Content="QUIT" Command="{Binding QuitCommand}"
                         IsVisible="{Binding IsGameRunning}"
                         Background="#cc3333" Foreground="White" FontWeight="Bold"
                         Padding="16,6" VerticalAlignment="Center"/>
