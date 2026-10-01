@@ -139,20 +139,31 @@ jobs:
             -o publish-web
 
       - name: Assemble the Pages site
+        id: assemble
         run: |
-          site=publish-web/wwwroot
+          echo "--- published layout ---"
+          find publish-web -not -path '*/_framework/*' | sort | head -80
+          # The site root is the folder holding _framework; lift the wrapper files next to it
+          # if the SDK deployed them from a subfolder.
+          fw=$(find publish-web -type d -name _framework | head -1)
+          test -n "$fw" || { echo "::error::no _framework folder was published"; exit 1; }
+          site=$(dirname "$fw")
+          idx=$(find publish-web -name index.html -not -path '*/_framework/*' | head -1)
+          test -n "$idx" || { echo "::error::no index.html was published"; exit 1; }
+          if [ "$(dirname "$idx")" != "$site" ]; then cp -a "$(dirname "$idx")"/. "$site"/; fi
           touch "$site/.nojekyll"
           for f in index.html main.js app.css og-image.png favicon.svg robots.txt sitemap.xml _framework/dotnet.js; do
             test -s "$site/$f" || { echo "::error::missing $f in the published site"; exit 1; }
           done
           grep -q 'property="og:image"' "$site/index.html"
           grep -q 'name="twitter:card"' "$site/index.html"
+          echo "site=$site" >> "$GITHUB_OUTPUT"
           du -sh "$site"; ls "$site" "$site/_framework" | head -50
 
       - name: Upload the Pages artifact
         uses: actions/upload-pages-artifact@v3
         with:
-          path: publish-web/wwwroot
+          path: ${{ steps.assemble.outputs.site }}
 
   release:
     name: Publish the GitHub Release
