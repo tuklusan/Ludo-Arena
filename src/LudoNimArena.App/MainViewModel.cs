@@ -205,6 +205,10 @@ public partial class MainViewModel : ObservableObject
 
         AddLog("Game started!");
 
+        // Show every token in its yard (and correct player cards) from the start, not only once
+        // the first turn begins after the opening roll-off.
+        UpdateTokenDisplay();
+
         // Roll-off to determine first player
         var firstPlayer = await DetermineFirstPlayerAsync(ct);
         _gameState = _gameState.WithCurrentPlayer(firstPlayer)
