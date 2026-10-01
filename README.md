@@ -56,8 +56,8 @@ enforcing) refuses to load unsigned binaries and the app will not start, reporti
 `An Application Control policy has blocked this file (0x800711C7)`; this affects any unsigned build.
 Building from source, as below, avoids both.
 
-📖 **Written up as a blog series — start at
-[Part 1: Install ChatDev 2.0 on Linux](https://supratim-sanyal.blogspot.com/2026/07/install-chatdev-ai-agents-linux_01345372577.html).**
+📖 **Part 3 of a blog series — how this game was built:
+[Build a Cross-Platform Ludo Game with ChatDev 2.0: Free AI Models Fail, a $1 DeepSeek Run Ships It](https://supratim-sanyal.blogspot.com/2026/08/build-cross-platform-ludo-game-chatdev-deepseek.html).**
 
 A polished, cross-platform desktop **Ludo** game in which **four autonomous AI players** play a
 full match automatically — animated die, tokens gliding cell by cell, captures, blockades, bonus
@@ -318,14 +318,16 @@ This game was built by **ChatDev 2.0**, a multi-agent "virtual software company,
 specification in [`docs/REQUIREMENTS_PROMPT.md`](docs/REQUIREMENTS_PROMPT.md) — five free models
 failed at it, and one paid DeepSeek run costing about a dollar shipped it.
 
-The whole story is written up as a blog series on
+The story of this game is **Part 3** of a blog series on
 [Supratim Sanyal's Blog](https://supratim-sanyal.blogspot.com/). **Start here:**
 
-> ### 📖 [Part 1 — Install ChatDev 2.0 on Linux: AI Agents That Build Real Software](https://supratim-sanyal.blogspot.com/2026/07/install-chatdev-ai-agents-linux_01345372577.html)
+> ### 📖 [Part 3 — Build a Cross-Platform Ludo Game with ChatDev 2.0: Free AI Models Fail, a $1 DeepSeek Run Ships It](https://supratim-sanyal.blogspot.com/2026/08/build-cross-platform-ludo-game-chatdev-deepseek.html)
 
-The series then builds progressively: Part 2 has the agents build a live AI news debate wall,
-Part 3 covers this game — the model shoot-out and the two silent bugs a green build hid — and
-Part 4 turns it into this public repository and proves it on every GitHub runner and CPU
+It covers the model shoot-out and the two silent bugs a green build hid. The series around it:
+[Part 1 — Install ChatDev 2.0 on Linux](https://supratim-sanyal.blogspot.com/2026/07/install-chatdev-ai-agents-linux_01345372577.html)
+sets up the tooling, Part 2 has the agents build a live AI news debate wall, and
+[Part 4 — Publishing an AI-Built Game](https://supratim-sanyal.blogspot.com/2026/08/publish-ai-built-game-github-release-eleven-runners_01119087650.html)
+turns the game into this public repository and proves it on every GitHub runner and CPU
 architecture.
 
 ## License
